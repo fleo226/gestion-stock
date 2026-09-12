@@ -44,3 +44,6 @@ next-env.d.ts
 /.mimosa/
 /AGENTS.md
 /CLAUDE.md
+
+.vercel
+.env*
