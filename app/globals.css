@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+/* ==== Identité visuelle : commerce de confiance, chaleur africaine ==== */
+:root {
+  --canvas: #f6f4ef;      /* fond chaud, doux pour les yeux en boutique */
+  --ink: #201a14;         /* texte principal, presque noir chaud */
+  --ink-soft: #6b6156;    /* texte secondaire */
+  --brand: #1e6b47;       /* vert profond : croissance, argent, confiance */
+  --brand-dark: #155232;
+  --brand-soft: #e4efe6;
+  --gold: #d99a2b;        /* or : bouton d'action, valeur */
+  --gold-dark: #b97e1c;
+  --danger: #c2402a;      /* sortie / vente : alerte calme */
+  --card: #ffffff;
+  --line: #e7e1d6;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-soft: var(--brand-soft);
+  --color-gold: var(--gold);
+  --color-gold-dark: var(--gold-dark);
+  --color-danger: var(--danger);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  /* Évite le zoom accidentel sur les champs en mobile */
+  font-size: 16px;
+  touch-action: manipulation;
+}
+
+/* Grandes zones tactiles en boutique */
+button, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Masque le clavier numérique mobile sur les champs nombre */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@keyframes pop {
+  0% { opacity: 0; transform: scale(0.96) translateY(4px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.anim-pop { animation: pop 0.18s ease-out both; }

@@ -1,0 +1,39 @@
+// Gestion de stock pour commerçants — base dédiée (aucun lien avec Faso Cap)
+// Base : Turso/SQLite en local (fichier), Postgres/Supabase en production via env
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_DIRECT")
+}
+
+// Un article (vêtement, paire, mètre, etc.)
+model Article {
+  id           String   @id @default(cuid())
+  nom          String   // nom affiché, ex: "Robe fleurie"
+  taille       String?  // ex: M, XL, 42
+  couleur      String?  // ex: bleu, rouge
+  prixAchat    Int      // en FCFA
+  prixVente    Int      // en FCFA
+  quantite     Int      @default(0) // stock actuel (recaculé à partir des mouvements)
+  unite        String   @default("pièce") // pièce, paire, mètre, kg...
+  photoUrl     String?  // URL de la photo dans Supabase Storage
+  creeLe       DateTime @default(now())
+  mouvements   Mouvement[]
+}
+
+// Un mouvement : une entrée ou une sortie (vente) d'un article
+model Mouvement {
+  id            String   @id @default(cuid())
+  articleId     String
+  article       Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  type          String   // "ENTREE" ou "SORTIE"
+  quantite      Int      // >= 1 ; une sortie ne peut pas dépasser le stock
+  prixUnitaire  Int      // prix appliqué (achat pour entrée, vente pour sortie)
+  date          DateTime @default(now())
+  note          String?  // ex: "commande 15 pièces", "client Paydunya"
+}

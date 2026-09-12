@@ -1,0 +1,11 @@
+{
+  "name": "Ma Boutique · Gestion de stock",
+  "short_name": "Ma Boutique",
+  "description": "Gérez votre stock simplement : ce qui entre, ce qui sort, ce qui reste.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f4ef",
+  "theme_color": "#1e6b47",
+  "lang": "fr",
+  "icons": []
+}
