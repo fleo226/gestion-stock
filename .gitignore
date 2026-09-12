@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Fichiers système (hors projet)
+/.mimosa/
+/AGENTS.md
+/CLAUDE.md
