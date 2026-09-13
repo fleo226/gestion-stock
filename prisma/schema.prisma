@@ -1,39 +1,54 @@
 // Gestion de stock pour commerçants — base dédiée (aucun lien avec Faso Cap)
-// Base : Turso/SQLite en local (fichier), Postgres/Supabase en production via env
+// V2 : comptes utilisateurs — chaque commerçante voit uniquement son stock
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DATABASE_URL_DIRECT")
 }
 
-// Un article (vêtement, paire, mètre, etc.)
+// Le compte de la commerçante
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  nom          String
+  passwordHash String
+  couleur      String    @default("#2563eb") // couleur d'accent choisie
+  creeLe       DateTime  @default(now())
+  articles     Article[]
+}
+
+// Un article (vêtement, paire, mètre, etc.) — appartient à UNE commerçante
 model Article {
-  id           String   @id @default(cuid())
-  nom          String   // nom affiché, ex: "Robe fleurie"
-  taille       String?  // ex: M, XL, 42
-  couleur      String?  // ex: bleu, rouge
-  prixAchat    Int      // en FCFA
-  prixVente    Int      // en FCFA
-  quantite     Int      @default(0) // stock actuel (recaculé à partir des mouvements)
-  unite        String   @default("pièce") // pièce, paire, mètre, kg...
-  photoUrl     String?  // URL de la photo dans Supabase Storage
-  creeLe       DateTime @default(now())
-  mouvements   Mouvement[]
+  id         String     @id @default(cuid())
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nom        String     // nom affiché, ex: "Robe fleurie"
+  taille     String?    // ex: M, XL, 42
+  couleur    String?    // ex: bleu, rouge
+  prixAchat  Int        // en FCFA
+  prixVente  Int        // en FCFA
+  quantite   Int        @default(0) // stock actuel (recalculé à partir des mouvements)
+  unite      String     @default("pièce") // pièce, paire, mètre, kg...
+  photoUrl   String?    // URL de la photo dans Supabase Storage
+  creeLe     DateTime   @default(now())
+  mouvements Mouvement[]
+
+  @@index([userId])
 }
 
 // Un mouvement : une entrée ou une sortie (vente) d'un article
 model Mouvement {
-  id            String   @id @default(cuid())
-  articleId     String
-  article       Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  type          String   // "ENTREE" ou "SORTIE"
-  quantite      Int      // >= 1 ; une sortie ne peut pas dépasser le stock
-  prixUnitaire  Int      // prix appliqué (achat pour entrée, vente pour sortie)
-  date          DateTime @default(now())
-  note          String?  // ex: "commande 15 pièces", "client Paydunya"
+  id           String   @id @default(cuid())
+  articleId    String
+  article      Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  type         String   // "ENTREE" ou "SORTIE"
+  quantite     Int      // >= 1 ; une sortie ne peut pas dépasser le stock
+  prixUnitaire Int      // prix appliqué (achat pour entrée, vente pour sortie)
+  date         DateTime @default(now())
+  note         String?  // ex: "commande 15 pièces", "client Aminata"
 }
