@@ -3,128 +3,135 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Package, TrendingUp, DollarSign, ArrowRight } from 'lucide-react';
+import { Package, TrendingUp, DollarSign, ArrowRight, CheckCircle, Users, Smartphone, Shield, Star } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Vérifier si l'utilisateur est connecté
     fetch('/api/auth/me')
       .then(r => r.json())
       .then(data => {
-        if (data.user) {
-          router.push('/stock');
-        }
+        if (data.user) router.push('/stock');
       });
   }, [router]);
 
+  const features = [
+    { icon: <Package className="h-6 w-6" />, title: 'Stock temps réel', desc: 'Suivez entrées, sorties et stock instantanément' },
+    { icon: <TrendingUp className="h-6 w-6" />, title: 'Bénéfices auto', desc: 'Marge, CA et profit calculés pour chaque article' },
+    { icon: <DollarSign className="h-6 w-6" />, title: 'Prix achat / vente', desc: 'Enregistrez vos prix et voyez vos marges immédiatement' },
+    { icon: <Smartphone className="h-6 w-6" />, title: 'Mobile first', desc: 'Interface pensée pour le téléphone, utilisable en boutique' },
+    { icon: <Shield className="h-6 w-6" />, title: 'Données privées', desc: 'Vos données ne sont accessibles qu\'à vous' },
+    { icon: <Users className="h-6 w-6" />, title: 'Multi-boutiques', desc: 'Un compte par commerçante, stock isolé' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">Ma Boutique</h1>
-          <Link 
-            href="/auth/login" 
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
-          >
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white" style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}>
+              <Package className="h-6 w-6" />
+            </div>
+            <span className="text-xl font-bold text-gray-900">Ma Boutique</span>
+          </div>
+          <Link href="/auth/login" className="px-5 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 active:bg-blue-800 touch-manipulation transition-colors">
             Se connecter
           </Link>
         </div>
       </header>
 
       {/* Hero */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Gerer votre stock<br />
-            <span className="text-blue-600">simplement</span>
-          </h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Ce qui entre, ce qui sort, ce qui reste. Une application pensee pour les commerçants.
+      <main className="max-w-2xl mx-auto px-4 py-8">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-5" style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}>
+            <Package className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 leading-tight mb-4">
+            Gérez votre stock<br />
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">simplement</span>
+          </h1>
+          <p className="text-lg text-gray-600 max-w-xl mx-auto">
+            Ce qui entre, ce qui sort, ce qui reste. L'application pensée pour les commerçantes qui veulent voir leurs bénéfices en un coup d'œil.
           </p>
-          <Link 
-            href="/auth/login" 
-            className="inline-flex items-center space-x-2 px-8 py-3 bg-blue-600 text-white text-lg rounded-xl hover:bg-blue-700 transition-colors shadow-lg"
-          >
-            <span>Commencer gratuitement</span>
+        </div>
+
+        {/* CTA */}
+        <Link
+          href="/auth/login"
+          className="block w-full max-w-xs mx-auto py-4 rounded-2xl font-semibold text-lg text-white text-center shadow-xl active:shadow-lg transition-all touch-manipulation"
+          style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}
+        >
+          <span className="flex items-center justify-center space-x-2">
+            Commencer gratuitement
             <ArrowRight className="h-5 w-5" />
-          </Link>
+          </span>
+        </Link>
+
+        {/* Trust indicators */}
+        <div className="flex items-center justify-center space-x-8 mt-10 text-sm text-gray-400">
+          <div className="flex items-center space-x-1.5">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <span>Gratuit</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <Shield className="h-4 w-4 text-green-500" />
+            <span>Sécurisé</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <Smartphone className="h-4 w-4 text-green-500" />
+            <span>Mobile</span>
+          </div>
         </div>
 
         {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <FeatureCard 
-            icon={<Package className="h-8 w-8" />}
-            title="Stock en temps reel"
-            desc="Suivez vos entrees, sorties et stock actuel instantanement. Plus de surprises a l'inventaire."
-          />
-          <FeatureCard 
-            icon={<TrendingUp className="h-8 w-8" />}
-            title="Benefices calcules"
-            desc="Valeur du stock, chiffre d'affaires, marges : tout est calcule automatiquement pour chaque article."
-          />
-          <FeatureCard 
-            icon={<DollarSign className="h-8 w-8" />}
-            title="Prix achat & vente"
-            desc="Enregistrez vos prix d'achat et de vente. Voyez immediatement votre benefice par article."
-          />
+        <div className="mt-16 space-y-8">
+          <h2 className="text-xl font-bold text-gray-900 text-center">Pourquoi Ma Boutique ?</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {features.map((f, i) => (
+              <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 hover:border-blue-200 hover:shadow-md transition-all">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 text-white" style={{ background: `linear-gradient(135deg, ${['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2'][i]}, ${['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2'][i]}dd)` }}>
+                  {f.icon}
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">{f.title}</h3>
+                <p className="text-sm text-gray-600">{f.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Demo */}
-        <div className="mt-16 p-8 bg-white rounded-2xl shadow border">
-          <h3 className="text-2xl font-bold text-gray-900 text-center mb-8">Fonctionnalites principales</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <FeatureList
-              items={[
-                "Ajouter / modifier / supprimer des articles",
-                "Photos pour chaque article",
-                "Tailles, couleurs, unites personnalisees",
-                "Entrees et sorties de stock tracees",
-              ]}
-            />
-            <FeatureList
-              items={[
-                "Calcul auto : stock, ventes, benefices, CA",
-                "Historique complet des mouvements",
-                "Recherche et filtres rapides",
-                "Theme personnalisable par utilisateur",
-              ]}
-            />
+        {/* How it works */}
+        <div className="mt-16 p-6 rounded-2xl bg-gray-50 border border-gray-100">
+          <h2 className="text-xl font-bold text-gray-900 text-center mb-5">3 étapes pour démarrer</h2>
+          <div className="grid grid-cols-3 gap-4">
+            <StepStep number="1" title="Créer votre compte" desc="Email, mot de passe, c'est tout" />
+            <StepStep number="2" title="Ajouter vos articles" desc="Nom, prix, photo, stock initial" />
+            <StepStep number="3" title="Vendre & gagner" desc="Entrées, sorties, bénéfices auto" />
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-white py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
-          Ma Boutique - Gestion de stock simple pour commercants
+      <footer className="border-t bg-white py-8 mt-16">
+        <div className="max-w-2xl mx-auto px-4 text-center text-sm text-gray-500">
+          Ma Boutique — Gestion de stock simple pour commerçantes
         </div>
       </footer>
     </div>
   );
 }
 
-function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+function StepStep({ number, title, desc }: { number: string | number; title: string; desc: string }) {
   return (
-    <div className="bg-white p-6 rounded-xl shadow border hover:shadow-md transition-shadow">
-      <div className="bg-blue-50 p-3 rounded-lg w-fit mb-4 text-blue-600">{icon}</div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-600">{desc}</p>
-    </div>
-  );
-}
-
-function FeatureList({ items }: { items: string[] }) {
-  return (
-    <div className="space-y-4">
-      {items.map((item, i) => (
-        <div key={i} className="flex items-start space-x-3">
-          <div className="w-2 h-2 bg-blue-600 rounded-full mt-2.5 flex-shrink-0" />
-          <span className="text-gray-700">{item}</span>
+    <div className="text-center relative">
+      <div className="relative">
+        <div className="mx-auto w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl mb-3" style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}>
+          {number}
         </div>
-      ))}
+      </div>
+      <h3 className="font-semibold text-gray-900 mb-1">{title}</h3>
+      <p className="text-sm text-gray-600">{desc}</p>
     </div>
   );
 }

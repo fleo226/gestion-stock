@@ -37,56 +37,115 @@ export default function ActivitePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const formatDate = (d: string) => {
+    const date = new Date(d);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours < 1) return "à l'instant";
+    if (hours < 24) return `il y a ${hours}h`;
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   const formatPrice = (p: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(p);
 
   const filtered = filter === 'all' ? mouvements : mouvements.filter(m => m.type === filter);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-4 h-16">
-            <Link href="/" className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft className="h-5 w-5" /></Link>
-            <h1 className="text-xl font-bold text-gray-900">Activite</h1>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="flex items-center space-x-2 h-14">
+            <Link href="/stock" className="p-2 -ml-2 text-gray-500 hover:text-gray-700 active:bg-gray-100 rounded-xl touch-manipulation">
+              <ArrowLeft className="h-6 w-6" />
+            </Link>
+            <h1 className="text-lg font-semibold text-gray-900">Activité</h1>
+            <span className="text-sm text-gray-400 ml-1">({mouvements.length})</span>
           </div>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filtres */}
-        <div className="flex space-x-2 mb-6">
-          <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-lg font-medium ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-white border hover:bg-gray-50'}`}>Tout ({mouvements.length})</button>
-          <button onClick={() => setFilter('ENTREE')} className={`px-4 py-2 rounded-lg font-medium ${filter === 'ENTREE' ? 'bg-green-600 text-white' : 'bg-white border hover:bg-gray-50'}`}>Entrees ({mouvements.filter(m => m.type === 'ENTREE').length})</button>
-          <button onClick={() => setFilter('SORTIE')} className={`px-4 py-2 rounded-lg font-medium ${filter === 'SORTIE' ? 'bg-red-600 text-white' : 'bg-white border hover:bg-gray-50'}`}>Sorties ({mouvements.filter(m => m.type === 'SORTIE').length})</button>
+
+      <main className="max-w-2xl mx-auto px-4 py-5">
+        {/* Filter Pills */}
+        <div className="flex space-x-2 mb-5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+          <FilterPill
+            label="Tout"
+            count={mouvements.length}
+            active={filter === 'all'}
+            onClick={() => setFilter('all')}
+            color="bg-gray-100 text-gray-700"
+            activeColor="bg-gray-900 text-white"
+          />
+          <FilterPill
+            label="Entrées"
+            count={mouvements.filter(m => m.type === 'ENTREE').length}
+            active={filter === 'ENTREE'}
+            onClick={() => setFilter('ENTREE')}
+            color="bg-emerald-50 text-emerald-700"
+            activeColor="bg-emerald-600 text-white"
+          />
+          <FilterPill
+            label="Sorties"
+            count={mouvements.filter(m => m.type === 'SORTIE').length}
+            active={filter === 'SORTIE'}
+            onClick={() => setFilter('SORTIE')}
+            color="bg-red-50 text-red-700"
+            activeColor="bg-red-600 text-white"
+          />
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-500">Chargement...</div>
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white rounded-xl p-4 animate-pulse flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gray-200 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/3" />
+                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg border">
-            <Clock className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">Aucun mouvement enregistre</p>
+          <div className="bg-white rounded-2xl p-10 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Clock className="h-8 w-8 text-gray-300" />
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 mb-1">Aucun mouvement</h3>
+            <p className="text-gray-500 text-sm">
+              {filter === 'all' ? 'Les entrées et sorties apparaîtront ici' : `Aucune ${filter === 'ENTREE' ? 'entrée' : 'sortie'} enregistrée`}
+            </p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow border divide-y divide-gray-200">
+          <div className="space-y-2">
             {filtered.map(m => (
-              <div key={m.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                <div className="flex items-center space-x-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${m.type === 'ENTREE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {m.type === 'ENTREE' ? <ArrowUpRight className="inline h-4 w-4" /> : <ArrowDownRight className="inline h-4 w-4" />}
-                    {' '}{m.type === 'ENTREE' ? 'Entree' : 'Sortie'}
-                  </span>
-                  <div>
-                    <p className="font-medium text-gray-900">{m.article.nom}</p>
-                    <p className="text-sm text-gray-500">{m.quantite} {m.article.unite} a {formatPrice(m.prixUnitaire)}</p>
-                    {m.note && <p className="text-xs text-gray-400 mt-1">{m.note}</p>}
+              <div key={m.id} className="bg-white rounded-xl border border-gray-100 p-4 active:bg-gray-50 touch-manipulation transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      m.type === 'ENTREE' ? 'bg-emerald-100' : 'bg-red-100'
+                    }`}>
+                      {m.type === 'ENTREE' ? (
+                        <ArrowUpRight className="h-5 w-5 text-emerald-600" />
+                      ) : (
+                        <ArrowDownRight className="h-5 w-5 text-red-600" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{m.article.nom}</p>
+                      <p className="text-sm text-gray-500">
+                        {m.type === 'ENTREE' ? '+' : '-'}{m.quantite} {m.article.unite}
+                        {m.note && <span className="text-gray-400"> · {m.note}</span>}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className={`font-medium ${m.type === 'ENTREE' ? 'text-green-600' : 'text-red-600'}`}>
-                    {m.type === 'ENTREE' ? '+' : '-'}{formatPrice(m.quantite * m.prixUnitaire)}
-                  </p>
-                  <p className="text-xs text-gray-400">{formatDate(m.date)}</p>
+                  <div className="text-right">
+                    <p className={`text-sm font-semibold ${m.type === 'ENTREE' ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {m.type === 'ENTREE' ? '+' : '-'}{formatPrice(m.quantite * m.prixUnitaire)}
+                    </p>
+                    <p className="text-xs text-gray-400">{formatDate(m.date)}</p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -94,5 +153,21 @@ export default function ActivitePage() {
         )}
       </main>
     </div>
+  );
+}
+
+function FilterPill({ label, count, active, onClick, color, activeColor }: {
+  label: string; count: number; active: boolean; onClick: () => void; color: string; activeColor: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0 touch-manipulation transition-all ${
+        active ? activeColor : color
+      }`}
+    >
+      <span>{label}</span>
+      <span className={`text-xs px-1.5 py-0.5 rounded-md ${active ? 'bg-white/20' : 'bg-white'}`}>{count}</span>
+    </button>
   );
 }

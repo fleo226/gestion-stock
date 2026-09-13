@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, User, Palette, LogOut } from 'lucide-react';
+import { ArrowLeft, Save, User, Palette, LogOut, Shield, Loader2, Check } from 'lucide-react';
 
 export default function ParametresPage() {
   const router = useRouter();
@@ -40,7 +40,8 @@ export default function ParametresPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage('Parametres sauvegardes !');
+        setMessage('Paramètres sauvegardés !');
+        setUser(prev => prev ? { ...prev, nom: nom.trim(), couleur } : prev);
         setTimeout(() => setMessage(''), 3000);
       } else {
         setMessage(data.error || 'Erreur');
@@ -57,90 +58,150 @@ export default function ParametresPage() {
     router.push('/auth/login');
   };
 
-  const COULEURS = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2', '#be185d', '#4338ca'];
+  const COULEURS = [
+    { value: '#2563eb', label: 'Bleu' },
+    { value: '#7c3aed', label: 'Violet' },
+    { value: '#059669', label: 'Vert' },
+    { value: '#d97706', label: 'Orange' },
+    { value: '#dc2626', label: 'Rouge' },
+    { value: '#0891b2', label: 'Cyan' },
+    { value: '#be185d', label: 'Rose' },
+    { value: '#4338ca', label: 'Indigo' },
+    { value: '#9333ea', label: 'Mauve' },
+    { value: '#ea580c', label: 'Orange foncé' },
+  ];
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Chargement...</div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+    </div>
+  );
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-4 h-16">
-            <Link href="/" className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft className="h-5 w-5" /></Link>
-            <h1 className="text-xl font-bold text-gray-900">Parametres</h1>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center space-x-2">
+              <Link href="/stock" className="p-2 -ml-2 text-gray-500 hover:text-gray-700 active:bg-gray-100 rounded-xl touch-manipulation">
+                <ArrowLeft className="h-6 w-6" />
+              </Link>
+              <h1 className="text-lg font-semibold text-gray-900">Paramètres</h1>
+            </div>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center space-x-2 px-4 py-2 text-white rounded-xl text-sm font-medium active:bg-blue-800 touch-manipulation disabled:opacity-50"
+              style={{ backgroundColor: couleur }}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              <span>Sauvegarder</span>
+            </button>
           </div>
         </div>
       </header>
-      <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+
+      <main className="max-w-2xl mx-auto px-4 py-5 space-y-5">
         {message && (
-          <div className={`p-3 rounded-lg text-sm ${message.includes('Erreur') ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
-            {message}
+          <div className={`p-4 rounded-xl text-sm font-medium flex items-center space-x-2 animate-pop ${
+            message.includes('Erreur') ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'
+          }`}>
+            {message.includes('Erreur') ? null : <Check className="h-5 w-5" />}
+            <span>{message}</span>
           </div>
         )}
 
         {/* Profil */}
-        <div className="bg-white rounded-xl shadow border p-6">
-          <h3 className="flex items-center space-x-2 text-lg font-semibold text-gray-900 mb-4">
-            <User className="h-5 w-5" />
-            <span>Mon profil</span>
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" value={user.email} disabled className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-500" />
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-center space-x-3 mb-5">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg" style={{ backgroundColor: couleur }}>
+              {nom.charAt(0).toUpperCase()}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-              <input type="text" value={nom} onChange={e => setNom(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+              <h3 className="font-semibold text-gray-900">Mon profil</h3>
+              <p className="text-sm text-gray-500">{user.email}</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom affiché</label>
+              <input
+                type="text"
+                value={nom}
+                onChange={e => setNom(e.target.value)}
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="Votre nom"
+              />
             </div>
           </div>
         </div>
 
-        {/* Couleur */}
-        <div className="bg-white rounded-xl shadow border p-6">
-          <h3 className="flex items-center space-x-2 text-lg font-semibold text-gray-900 mb-4">
-            <Palette className="h-5 w-5" />
-            <span>Couleur du theme</span>
-          </h3>
-          <div className="flex flex-wrap gap-3">
+        {/* Couleur du thème */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-center space-x-2 mb-5">
+            <Palette className="h-5 w-5 text-gray-500" />
+            <h3 className="font-semibold text-gray-900">Couleur du thème</h3>
+          </div>
+
+          <div className="grid grid-cols-5 gap-3 mb-5">
             {COULEURS.map(c => (
               <button
-                key={c}
-                onClick={() => setCouleur(c)}
-                className={`w-12 h-12 rounded-full border-2 transition-all ${couleur === c ? 'border-gray-900 scale-110' : 'border-transparent hover:scale-105'}`}
-                style={{ backgroundColor: c }}
-              />
+                key={c.value}
+                onClick={() => setCouleur(c.value)}
+                className={`aspect-square rounded-xl transition-all touch-manipulation relative ${
+                  couleur === c.value ? 'ring-2 ring-offset-2 ring-gray-900 scale-105' : 'hover:scale-105'
+                }`}
+                style={{ backgroundColor: c.value }}
+                aria-label={c.label}
+              >
+                {couleur === c.value && (
+                  <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-md" />
+                )}
+              </button>
             ))}
           </div>
-          <div className="mt-4 flex items-center space-x-3">
-            <label className="text-sm text-gray-600">Personnaliser :</label>
-            <input type="color" value={couleur} onChange={e => setCouleur(e.target.value)} className="w-10 h-10 rounded border cursor-pointer" />
+
+          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
+            <label className="text-sm text-gray-600 flex-shrink-0">Personnalisée :</label>
+            <input
+              type="color"
+              value={couleur}
+              onChange={e => setCouleur(e.target.value)}
+              className="w-10 h-10 rounded-lg border cursor-pointer touch-manipulation"
+            />
             <span className="text-sm font-mono text-gray-500">{couleur}</span>
           </div>
-          <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: `${couleur}10` }}>
+
+          {/* Aperçu */}
+          <div className="mt-4 p-4 rounded-xl border" style={{ borderColor: `${couleur}30`, backgroundColor: `${couleur}08` }}>
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full" style={{ backgroundColor: couleur }} />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg" style={{ backgroundColor: couleur }}>
+                {nom.charAt(0).toUpperCase()}
+              </div>
               <div>
-                <p className="font-medium" style={{ color: couleur }}>Apercu</p>
-                <p className="text-sm text-gray-500">Voici a quoi ressemblera votre theme</p>
+                <p className="font-semibold" style={{ color: couleur }}>{nom || 'Votre nom'}</p>
+                <p className="text-sm text-gray-500">Aperçu du thème</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="bg-white rounded-xl shadow border p-6">
-          <div className="flex items-center justify-between">
-            <button onClick={handleSave} disabled={saving} className="flex items-center space-x-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50">
-              <Save className="h-5 w-5" />
-              <span>{saving ? 'Enregistrement...' : 'Enregistrer'}</span>
-            </button>
-            <button onClick={handleLogout} className="flex items-center space-x-2 px-6 py-2.5 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 font-medium">
-              <LogOut className="h-5 w-5" />
-              <span>Deconnexion</span>
-            </button>
+        {/* Sécurité */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-center space-x-2 mb-4">
+            <Shield className="h-5 w-5 text-gray-500" />
+            <h3 className="font-semibold text-gray-900">Sécurité</h3>
           </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center space-x-2 py-3 bg-red-50 text-red-600 rounded-xl font-medium active:bg-red-100 touch-manipulation transition-colors"
+          >
+            <LogOut className="h-5 w-5" />
+            <span>Déconnexion</span>
+          </button>
         </div>
       </main>
     </div>
