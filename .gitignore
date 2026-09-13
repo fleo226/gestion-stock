@@ -47,3 +47,6 @@ next-env.d.ts
 
 .vercel
 .env*
+prisma/client.js
+# Vercel
+.vercel
