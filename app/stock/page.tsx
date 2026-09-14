@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, LogOut, Menu, X, TrendingUp, Package, DollarSign, ArrowUpRight, ArrowDownRight, Search, ChevronRight, User, Settings, Activity } from 'lucide-react';
+import { Plus, LogOut, Menu, X, TrendingUp, Package, DollarSign, ArrowUpRight, ArrowDownRight, Search, ChevronRight, User, Settings, Activity, BarChart3 } from 'lucide-react';
 import AIAssistant from '@/components/AIAssistant';
 
 type Article = {
@@ -111,6 +111,20 @@ export default function StockPage() {
             </div>
 
             <div className="flex items-center space-x-2">
+              <Link
+                href="/caisse"
+                className="p-2.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl active:bg-blue-100 touch-manipulation transition-colors"
+                title="Caisse"
+              >
+                <DollarSign className="h-5 w-5" />
+              </Link>
+              <Link
+                href="/stats"
+                className="p-2.5 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl active:bg-purple-100 touch-manipulation transition-colors"
+                title="Statistiques"
+              >
+                <BarChart3 className="h-5 w-5" />
+              </Link>
               <Link
                 href="/parametres"
                 className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl active:bg-gray-200 touch-manipulation transition-colors"
