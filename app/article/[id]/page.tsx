@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Edit, Trash2, Plus, Minus, Package, DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp, Clock, X, Check, Loader2 } from 'lucide-react';
+import AIAssistant from '@/components/AIAssistant';
 
 type Article = {
   id: string;
@@ -363,6 +364,7 @@ export default function ArticleDetailPage() {
           )}
         </div>
       </main>
+    <AIAssistant />
     </div>
   );
 }

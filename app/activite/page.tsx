@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, Clock, Package } from 'lucide-react';
+import AIAssistant from '@/components/AIAssistant';
 
 type Mouvement = {
   id: string;
@@ -152,6 +153,7 @@ export default function ActivitePage() {
           </div>
         )}
       </main>
+    <AIAssistant />
     </div>
   );
 }

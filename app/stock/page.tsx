@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, LogOut, Menu, X, TrendingUp, Package, DollarSign, ArrowUpRight, ArrowDownRight, Search, ChevronRight, User, Settings, Activity } from 'lucide-react';
+import AIAssistant from '@/components/AIAssistant';
 
 type Article = {
   id: string;
@@ -275,6 +276,7 @@ export default function StockPage() {
       >
         <Plus className="h-6 w-6" />
       </Link>
+    <AIAssistant />
     </div>
   );
 }
