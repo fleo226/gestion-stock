@@ -3,10 +3,31 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, User, Palette, LogOut, Shield, Loader2, Check } from 'lucide-react';
+import { ArrowLeft, Save, User, Palette, LogOut, Shield, Loader2, Check, Sun, Moon, Monitor } from 'lucide-react';
+import { useTheme } from '@/components/ThemeProvider';
+
+function ThemeOption({ value, label, icon, onClick, currentTheme }: { value: string; label: string; icon: React.ReactNode; onClick: () => void; currentTheme: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`p-4 rounded-xl border-2 flex flex-col items-center space-x-2 touch-manipulation transition-all ${
+        currentTheme === value
+          ? 'border-blue-500 bg-blue-50 text-blue-700'
+          : 'border-gray-200 hover:border-gray-300 text-gray-700'
+      }`}
+    >
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: currentTheme === value ? '#2563eb' : '#f3f4f6' }}>
+        {icon}
+      </div>
+      <span className="text-sm font-medium">{label}</span>
+    </button>
+  );
+}
 
 export default function ParametresPage() {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const [user, setUser] = useState<{id: string; email: string; nom: string; couleur: string} | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -186,6 +207,37 @@ export default function ParametresPage() {
                 <p className="text-sm text-gray-500">Aperçu du thème</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Mode d'affichage */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-center space-x-2 mb-4">
+            <Monitor className="h-5 w-5 text-gray-500" />
+            <h3 className="font-semibold text-gray-900">Mode d'affichage</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <ThemeOption
+              value="light"
+              label="Clair"
+              icon={<Sun className="h-5 w-5" />}
+              onClick={() => setTheme('light')}
+              currentTheme={theme}
+            />
+            <ThemeOption
+              value="dark"
+              label="Sombre"
+              icon={<Moon className="h-5 w-5" />}
+              onClick={() => setTheme('dark')}
+              currentTheme={theme}
+            />
+            <ThemeOption
+              value="system"
+              label="Auto"
+              icon={<Monitor className="h-5 w-5" />}
+              onClick={() => setTheme('system')}
+              currentTheme={theme}
+            />
           </div>
         </div>
 

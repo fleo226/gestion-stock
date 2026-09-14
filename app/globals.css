@@ -5,6 +5,31 @@
   --foreground: #111827;
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
+  --card: #ffffff;
+  --card-border: #e5e7eb;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #2563eb;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --card: #1e293b;
+  --card-border: #334155;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --border: #334155;
+  --input: #334155;
+  --ring: #3b82f6;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
 }
 
 html {
@@ -20,6 +45,7 @@ body {
   touch-action: manipulation;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 button, [role="button"], input, select, textarea {
@@ -58,8 +84,11 @@ input[type="number"] {
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
 /* Hide scrollbar but keep scrolling */
 .scrollbar-hide {
@@ -73,7 +102,7 @@ input[type="number"] {
   outline: none;
   ring: 2px;
   ring-offset: 2px;
-  ring-color: #2563eb;
+  ring-color: var(--ring);
 }
 
 /* Better touch targets */
@@ -93,14 +122,14 @@ html { scroll-behavior: smooth; }
 
 /* Selection colors */
 ::selection {
-  background-color: #2563eb;
+  background-color: var(--primary);
   color: white;
 }
 
 /* Print styles */
 @media print {
   header, footer, .fixed { display: none !important; }
-  body { background: white; }
+  body { background: white; color: black; }
 }
 
 /* Reduced motion */
@@ -112,3 +141,11 @@ html { scroll-behavior: smooth; }
     scroll-behavior: auto !important;
   }
 }
+
+/* Tailwind 4 custom utilities */
+@utility bg-card { background-color: var(--card); }
+@utility border-card { border-color: var(--card-border); }
+@utility text-muted { color: var(--muted-foreground); }
+@utility bg-muted { background-color: var(--muted); }
+@utility border-border { border-color: var(--border); }
+@utility bg-input { background-color: var(--input); }

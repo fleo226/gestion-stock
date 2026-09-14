@@ -43,6 +43,7 @@ export type CreerArticleInput = {
   quantite: number;
   unite: string;
   photoUrl?: string | null;
+  categorieId?: string | null;
 };
 
 // ============== HELPERS ==============
@@ -151,6 +152,7 @@ export async function creerArticle(input: CreerArticleInput) {
   const article = await db.article.create({
     data: {
       userId,
+      categorieId: input.categorieId || null,
       nom: input.nom.trim(),
       taille: input.taille?.trim() || null,
       couleur: input.couleur?.trim() || null,
@@ -197,6 +199,7 @@ export async function modifierArticle(id: string, input: CreerArticleInput) {
       prixVente: Math.round(input.prixVente || 0),
       unite: input.unite || "pièce",
       photoUrl: input.photoUrl || null,
+      categorieId: input.categorieId || null,
     },
   });
 
@@ -315,4 +318,96 @@ export async function getStatistiques() {
     ca,
     totalVendu,
   };
+}
+
+// ============== CATÉGORIES ==============
+
+export type CategorieData = {
+  id: string;
+  nom: string;
+  couleur: string;
+  ordre: number;
+  creeLe: Date;
+  articleCount?: number;
+};
+
+export async function getCategories(): Promise<CategorieData[]> {
+  const userId = await getUserId();
+  if (!userId) return [];
+  
+  const categories = await db.categorie.findMany({
+    where: { userId },
+    include: { articles: true },
+    orderBy: { ordre: 'asc' },
+  });
+
+  return categories.map(c => ({
+    id: c.id,
+    nom: c.nom,
+    couleur: c.couleur,
+    ordre: c.ordre,
+    creeLe: c.creeLe,
+    articleCount: c.articles.length,
+  }));
+}
+
+export async function creerCategorie(nom: string, couleur?: string) {
+  const userId = await getUserId();
+  if (!userId) return { error: 'Non connecté' };
+  if (!nom.trim()) return { error: 'Le nom est obligatoire' };
+
+  const maxOrdre = await db.categorie.findFirst({
+    where: { userId },
+    orderBy: { ordre: 'desc' },
+    select: { ordre: true },
+  });
+
+  const categorie = await db.categorie.create({
+    data: {
+      userId,
+      nom: nom.trim(),
+      couleur: couleur || '#2563eb',
+      ordre: (maxOrdre?.ordre || 0) + 1,
+    },
+  });
+
+  revalidatePath('/stock');
+  return { success: true, id: categorie.id };
+}
+
+export async function modifierCategorie(id: string, nom: string, couleur?: string) {
+  const userId = await getUserId();
+  if (!userId) return { error: 'Non connecté' };
+
+  const categorie = await db.categorie.findFirst({ where: { id, userId } });
+  if (!categorie) return { error: 'Catégorie introuvable' };
+
+  await db.categorie.update({
+    where: { id },
+    data: {
+      nom: nom.trim(),
+      couleur: couleur || categorie.couleur,
+    },
+  });
+
+  revalidatePath('/stock');
+  return { success: true };
+}
+
+export async function supprimerCategorie(id: string) {
+  const userId = await getUserId();
+  if (!userId) return { error: 'Non connecté' };
+
+  const categorie = await db.categorie.findFirst({ where: { id, userId } });
+  if (!categorie) return { error: 'Catégorie introuvable' };
+
+  await db.article.updateMany({
+    where: { categorieId: id },
+    data: { categorieId: null },
+  });
+
+  await db.categorie.delete({ where: { id } });
+
+  revalidatePath('/stock');
+  return { success: true };
 }

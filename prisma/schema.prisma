@@ -20,6 +20,21 @@ model User {
   couleur      String    @default("#2563eb") // couleur d'accent choisie
   creeLe       DateTime  @default(now())
   articles     Article[]
+  categories   Categorie[]
+}
+
+// Catégorie / Collection — appartient à UNE commerçante
+model Categorie {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nom       String     // ex: "Robes", "Pagnes", "Accessoires"
+  couleur   String     @default("#2563eb") // couleur pour l'affichage
+  ordre     Int        @default(0) // ordre d'affichage
+  creeLe    DateTime   @default(now())
+  articles  Article[]
+
+  @@index([userId])
 }
 
 // Un article (vêtement, paire, mètre, etc.) — appartient à UNE commerçante
@@ -27,6 +42,8 @@ model Article {
   id         String     @id @default(cuid())
   userId     String
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categorieId String?
+  categorie  Categorie? @relation(fields: [categorieId], references: [id], onDelete: SetNull)
   nom        String     // nom affiché, ex: "Robe fleurie"
   taille     String?    // ex: M, XL, 42
   couleur    String?    // ex: bleu, rouge
@@ -39,6 +56,7 @@ model Article {
   mouvements Mouvement[]
 
   @@index([userId])
+  @@index([categorieId])
 }
 
 // Un mouvement : une entrée ou une sortie (vente) d'un article
