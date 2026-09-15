@@ -1,30 +1,44 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Brain, Send, Zap, X } from 'lucide-react';
+import { ArrowLeft, Sparkles, Send, Loader2, Mic, X, Menu, MessageSquare, Brain, Zap, Shield } from 'lucide-react';
 
 type Message = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  streaming?: boolean;
 };
 
 export default function AssistantPage() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
   const [suggestions, setSuggestions] = useState<Array<{label: string; prompt: string}>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    const scroll = () => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
-    scroll();
-  }, [messages]);
+  }, []);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => { scrollToBottom(); }, [messages]);
 
   const handleSend = async (question: string) => {
     if (!question.trim() || loading) return;
@@ -32,7 +46,7 @@ export default function AssistantPage() {
     setInput('');
     setLoading(true);
 
-    const userMsg: Message = { id: `user-${Date.now()}`, role: 'user', content: q, timestamp: new Date() };
+    const userMsg = { id: `user-${Date.now()}`, role: 'user' as const, content: q, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
 
     try {
@@ -45,7 +59,7 @@ export default function AssistantPage() {
       const data = await res.json();
 
       if (data.success) {
-        const assistantMsg: Message = { id: `assistant-${Date.now()}`, role: 'assistant', content: data.response, timestamp: new Date() };
+        const assistantMsg = { id: `assistant-${Date.now()}`, role: 'assistant' as const, content: data.response, timestamp: new Date() };
         setMessages(prev => [...prev, assistantMsg]);
 
         // Update suggestions based on response
@@ -91,15 +105,21 @@ export default function AssistantPage() {
 
   const handleSuggestionClick = (prompt: string) => handleSend(prompt);
 
-  const handleClear = () => {
-    setMessages([]);
-    setSuggestions([]);
-  };
+  const handleClear = () => { setMessages([]); setSuggestions([]); };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleSend(input);
+    if (input.trim()) handleSend(input);
   };
+
+  const handleClear = () => { setMessages([]); setSuggestions([]); };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) handleSend(input);
+  }
+
+  const handleClear = () => { setMessages([]); setSuggestions([]); };
 
   const formatTime = (date: Date) => date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
@@ -132,6 +152,23 @@ export default function AssistantPage() {
             </div>
           </div>
         </div>
+
+        {/* Quick Actions Bar - Horizontal Scroll */}
+        <div className="px-4 pb-4 -mx-4 overflow-x-auto scrollbar-hide">
+          <div className="flex space-x-2 min-w-max pb-2">
+            {suggestions.map((sugg, i) => (
+              <button
+                key={i}
+                onClick={() => handleSuggestionClick(sugg.prompt)}
+                disabled={loading}
+                className="flex items-center space-x-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-400 dark:hover:bg-blue-400 active:bg-blue-100 dark:active:bg-blue-200 touch-manipulation transition-all disabled:opacity-50 flex-shrink-0"
+              >
+                <span className="text-lg">{sugg.icon}</span>
+                <span>{sugg.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </header>
 
       {/* Chat Area */}
@@ -158,75 +195,73 @@ export default function AssistantPage() {
                   </button>
                 ))}
               </div>
-            ) : (
-              <div className="space-y-4">
-                {messages.map((msg, i) => (
-                  <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}>
-                    <div className={`max-w-[85%] ${msg.role === 'user' 
-                      ? 'bg-blue-600 text-white rounded-2xl rounded-br-md' 
-                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-2xl rounded-bl-md shadow-sm border border-gray-300 dark:border-gray-600 flex items-start space-x-3'
-                    }`}>
-                      {msg.role === 'assistant' && (
-                        <div className="w-8 h-8 flex-shrink-0 mt-0.5 flex items-center justify-center rounded-lg" style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}>
-                          <Brain className="h-4 w-4 text-white" />
-                        </div>
-                      )}
-                      <div className={`p-4 ${msg.role === 'user' ? 'pr-4' : 'pl-4'}`}>
-                        <p className={`${msg.streaming ? 'whitespace-pre-wrap text-base leading-relaxed text-gray-600' : 'whitespace-pre-wrap text-base leading-relaxed text-gray-600 dark:text-gray-400'}`}>
-                          {msg.content}
-                        </p>
-                        {msg.streaming && (
-                          <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse ml-1" />
-                        )}
-                        <p className={`${msg.role === 'user' ? 'text-xs mt-2 text-blue-100 dark:text-blue-100' : 'text-xs mt-2 text-gray-400 dark:text-gray-600'}`}>
-                          {formatTime(msg.timestamp)}
-                        </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {messages.map((msg, i) => (
+                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}>
+                  <div className={`max-w-[85%] ${msg.role === 'user'
+                    ? 'bg-blue-600 text-white rounded-2xl rounded-br-md'
+                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-2xl rounded-bl-md shadow-sm border border-gray-300 dark:border-gray-600 flex items-start space-x-3'
+                  }`}>
+                    {msg.role === 'assistant' && (
+                      <div className="w-8 h-8 flex-shrink-0 mt-0.5 flex items-center justify-center rounded-lg" style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}>
+                        <Brain className="h-4 w-4 text-white" />
                       </div>
+                    )}
+                    <div className={`p-4 ${msg.role === 'user' ? 'pr-4' : 'pl-4'}`}>
+                      <p className={`${msg.streaming ? 'whitespace-pre-wrap text-base leading-relaxed text-gray-600' : 'whitespace-pre-wrap text-base leading-relaxed text-gray-600 dark:text-gray-400'}`}>
+                        {msg.content}
+                      </p>
+                      {msg.streaming && (
+                        <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse ml-1" />
+                      )}
+                      <p className={`${msg.role === 'user' ? 'text-xs mt-2 text-blue-100 dark:text-blue-100' : 'text-xs mt-2 text-gray-400 dark:text-gray-600'}`}>
+                        {formatTime(msg.timestamp)}
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
+            <div ref={messagesEndRef} />
           </div>
         </div>
-      </main>
 
-      {/* Input Area - Fixed Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 max-w-4xl mx-auto px-4 pb-4">
-        <form onSubmit={handleSubmit} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-300 dark:border-gray-600 p-3 shadow-lg">
-          <div className="flex items-end space-x-2">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={loading ? "Réflexion en cours..." : "Posez votre question..."}
-              className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
-              rows={1}
-              maxRows={5}
-              disabled={loading}
-              style={{ minHeight: '48px', fontFamily: 'inherit' }}
-            />
+        {/* Input Area - Fixed Bottom */}
+        <div className="fixed bottom-0 left-0 right-0 max-w-4xl mx-auto px-4 pb-4">
+          <form onSubmit={handleSubmit} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-300 dark:border-gray-600 p-3 shadow-lg">
             <div className="flex items-end space-x-2">
-              <button
-                type="button"
-                onClick={handleClear}
-                className="text-xs text-gray-400 hover:text-gray-600 flex items-center space-x-1"
-              >
-                <X className="h-3 w-3" />
-                <span>Effacer</span>
-              </button>
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={loading ? "Réflexion en cours..." : "Posez votre question..."}
+                className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                rows={1}
+                maxRows={5}
+                disabled={loading}
+                style={{ minHeight: '48px', fontFamily: 'inherit' }}
+              />
               <button
                 type="submit"
                 disabled={!input.trim() || loading}
-                className="p-3 rounded-xl text-white dark:text-gray-100 touch-manipulation active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-3 rounded-xl text-white dark:text-gray-100 touch-manipulation active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-transform"
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}
               >
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               </button>
             </div>
-          </div>
+            <div className="flex items-center justify-between mt-2">
+              <button onClick={handleClear} className="text-xs text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 flex items-center space-x-1">
+                <X className="h-3 w-3" />
+                <span>Effacer</span>
+              </button>
+              <span className="text-[10px] text-gray-400 dark:text-gray-300">Entrée pour envoyer • Shift+Entrée pour nouvelle ligne</span>
+            </div>
+          </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
