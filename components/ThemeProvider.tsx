@@ -49,6 +49,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       );
     };
 
+    // Apply immediately on mount
     applyTheme(getResolvedTheme());
 
     const handler = (e: MediaQueryListEvent) => {
