@@ -163,14 +163,14 @@ export default function StockPage() {
               </div>
             </div>
           )}
-        }
+        )}
 
         {/* Stats Pills */}
         <div className="flex space-x-2 overflow-x-auto pb-2 mb-5 -mx-4 px-4 scrollbar-hide">
           <StatPill icon={<Package className="h-4 w-4" />} label="Articles" value={String(stats.totalArticles)} color="text-blue-600" bg="bg-blue-50" />
           <StatPill icon={<DollarSign className="h-4 w-4" />} label="Stock" value={formatPrice(stats.valeurStock)} color="text-emerald-600" bg="bg-emerald-50" />
-          <StatPill icon={<TrendingUp className="h-4 w-4" />} label="Vendus" value={String(stats.totalVendu)} color="text-purple-600" bg="bg-purple-50" />
-          <StatPill icon={<ArrowUpRight className="h-4 w-4" />} label="CA" value={formatPrice(stats.ca)} color="text-orange-600" bg="bg-orange-50" />
+          <StatPill icon={<TrendingUp className="h-4 w-4"} label="Vendus" value={String(stats.totalVendu)} color="text-purple-600" bg="bg-purple-50" />
+          <StatPill icon={<ArrowUpRight className="h-4 w-4"} label="CA" value={formatPrice(stats.ca)} color="text-orange-600" bg="bg-orange-50" />
         </div>
 
         {/* Search + Add */}
@@ -291,6 +291,7 @@ export default function StockPage() {
       >
         <Plus className="h-6 w-6" />
       </Link>
+      <AIAssistant />
     </div>
   );
 }
