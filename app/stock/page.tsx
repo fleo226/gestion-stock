@@ -207,7 +207,7 @@ export default function StockPage() {
                   </div>
                 </div>
               </div>
-            ))}
+            )}
           </div>
         ) : filteredArticles.length === 0 ? (
           <div className="bg-white rounded-2xl p-10 text-center">

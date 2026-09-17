@@ -110,7 +110,7 @@ export default function AssistantPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim()) handleSend(input);
-  };
+  }
 
   const handleClear = () => { setMessages([]); setSuggestions([]); };
 
