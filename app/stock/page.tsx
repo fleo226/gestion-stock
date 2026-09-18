@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, LogOut, Menu, X, TrendingUp, Package, DollarSign, ArrowUpRight, ArrowDownRight, Search, ChevronRight, User, Settings, Activity, BarChart3, Bot } from 'lucide-react';
+import { Plus, LogOut, Menu, X, TrendingUp, Package, DollarSign, ArrowUpRight, ArrowDownRight, Search, ChevronRight, User, Settings, Activity, BarChart3, Bot, Download } from 'lucide-react';
+
+type Categorie = { id: string; nom: string; couleur: string };
 
 type Article = {
   id: string;
@@ -21,6 +23,8 @@ type Article = {
   valeurStock: number;
   benefice: number;
   ca: number;
+  categorieId: string | null;
+  categorie: { id: string; nom: string; couleur: string } | null;
 };
 
 export default function StockPage() {
@@ -93,49 +97,76 @@ export default function StockPage() {
 
   const accentColor = user?.couleur || '#2563eb';
 
+  const handleExport = () => {
+    const headers = ['Nom', 'Catégorie', 'Quantité', 'Prix Achat (FCFA)', 'Prix Vente (FCFA)', 'Valeur Stock (FCFA)'];
+    const rows = articles.map(a => [
+      a.nom,
+      a.categorie?.nom || '',
+      String(a.quantite),
+      String(a.prixAchat),
+      String(a.prixVente),
+      String(a.valeurStock),
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stock-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
       {/* Header - Compact Mobile */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              <Link href="/assistant" className="p-2 hover:bg-gray-100 rounded-lg">
-                <Bot className="h-5 w-5 text-blue-600" />
+              <Link href="/assistant" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                <Bot className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </Link>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: accentColor }}>
                 <span className="text-white font-bold text-sm">M</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 leading-tight">Ma Boutique</h1>
-                <p className="text-xs text-gray-500">{stats.totalArticles} articles</p>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">Ma Boutique</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{stats.totalArticles} articles</p>
               </div>
             </div>
 
             <div className="flex items-center space-x-2">
+              <button
+                onClick={handleExport}
+                className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl active:bg-emerald-100 touch-manipulation transition-colors"
+                title="Exporter CSV"
+              >
+                <Download className="h-5 w-5" />
+              </button>
               <Link
                 href="/caisse"
-                className="p-2.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl active:bg-blue-100 touch-manipulation transition-colors"
+                className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl active:bg-blue-100 touch-manipulation transition-colors"
                 title="Caisse"
               >
                 <DollarSign className="h-5 w-5" />
               </Link>
               <Link
                 href="/stats"
-                className="p-2.5 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl active:bg-purple-100 touch-manipulation transition-colors"
+                className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-xl active:bg-purple-100 touch-manipulation transition-colors"
                 title="Statistiques"
               >
                 <BarChart3 className="h-5 w-5" />
               </Link>
               <Link
                 href="/parametres"
-                className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl active:bg-gray-200 touch-manipulation transition-colors"
+                className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl active:bg-gray-200 touch-manipulation transition-colors"
                 title="Paramètres"
               >
                 <Settings className="h-5 w-5" />
               </Link>
               <form action="/api/auth/logout" method="POST">
-                <button className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                <button className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
                   <LogOut className="h-4 w-4" />
                   <span>Déconnexion</span>
                 </button>
@@ -162,32 +193,32 @@ export default function StockPage() {
                 <p className="text-base font-bold text-white">{formatPrice(stats.benefice)}</p>
               </div>
             </div>
-          )}
+          </div>
         )}
 
         {/* Stats Pills */}
         <div className="flex space-x-2 overflow-x-auto pb-2 mb-5 -mx-4 px-4 scrollbar-hide">
-          <StatPill icon={<Package className="h-4 w-4" />} label="Articles" value={String(stats.totalArticles)} color="text-blue-600" bg="bg-blue-50" />
-          <StatPill icon={<DollarSign className="h-4 w-4" />} label="Stock" value={formatPrice(stats.valeurStock)} color="text-emerald-600" bg="bg-emerald-50" />
-          <StatPill icon={<TrendingUp className="h-4 w-4"} label="Vendus" value={String(stats.totalVendu)} color="text-purple-600" bg="bg-purple-50" />
-          <StatPill icon={<ArrowUpRight className="h-4 w-4"} label="CA" value={formatPrice(stats.ca)} color="text-orange-600" bg="bg-orange-50" />
+          <StatPill icon={<Package className="h-4 w-4" />} label="Articles" value={String(stats.totalArticles)} color="text-blue-600 dark:text-blue-400" bg="bg-blue-50 dark:bg-blue-900/30" />
+          <StatPill icon={<DollarSign className="h-4 w-4" />} label="Stock" value={formatPrice(stats.valeurStock)} color="text-emerald-600 dark:text-emerald-400" bg="bg-emerald-50 dark:bg-emerald-900/30" />
+          <StatPill icon={<TrendingUp className="h-4 w-4" />} label="Vendus" value={String(stats.totalVendu)} color="text-purple-600 dark:text-purple-400" bg="bg-purple-50 dark:bg-purple-900/30" />
+          <StatPill icon={<ArrowUpRight className="h-4 w-4" />} label="CA" value={formatPrice(stats.ca)} color="text-orange-600 dark:text-orange-400" bg="bg-orange-50 dark:bg-orange-900/30" />
         </div>
 
         {/* Search + Add */}
         <div className="flex space-x-3 mb-5">
           <div className="flex-1 relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher..."
-              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-base text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
           <Link
             href="/article/nouveau"
-            className="flex items-center justify-center w-12 h-12 rounded-xl text-white shadow-lg active:shadow-md transition-shadow touch-manipulation"
+            className="flex items-center justify-center w-12 h-12 rounded-xl text-white shadow-lg dark:shadow-gray-900/30 active:shadow-md transition-shadow touch-manipulation"
             style={{ backgroundColor: accentColor }}
           >
             <Plus className="h-6 w-6" />
@@ -198,26 +229,26 @@ export default function StockPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-xl p-4 animate-pulse">
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 animate-pulse">
                 <div className="flex items-center space-x-3">
-                  <div className="w-14 h-14 bg-gray-200 rounded-xl" />
+                  <div className="w-14 h-14 bg-gray-200 dark:bg-gray-700 rounded-xl" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-1/3" />
-                    <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
                   </div>
                 </div>
               </div>
-            )}
+            ))}
           </div>
         ) : filteredArticles.length === 0 ? (
-          <div className="bg-white rounded-2xl p-10 text-center">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Package className="h-10 w-10 text-gray-300" />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-10 text-center">
+            <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="h-10 w-10 text-gray-300 dark:text-gray-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
               {search ? 'Aucun résultat' : 'Aucun article'}
             </h3>
-            <p className="text-gray-500 mb-5 text-sm">
+            <p className="text-gray-500 dark:text-gray-400 mb-5 text-sm">
               {search ? 'Essayez une autre recherche' : 'Ajoutez votre premier article pour commencer'}
             </p>
             {!search && (
@@ -234,11 +265,11 @@ export default function StockPage() {
         ) : (
           <div className="space-y-2">
             {filteredArticles.map((article) => (
-              <div key={article.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden active:bg-gray-50 transition-colors">
+              <div key={article.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden active:bg-gray-50 dark:active:bg-gray-700 transition-colors">
                 <Link href={`/article/${article.id}`} className="block p-4">
                   <div className="flex items-center space-x-3">
                     {/* Photo / Avatar */}
-                    <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {article.photoUrl ? (
                         <img
                           src={article.photoUrl}
@@ -250,14 +281,24 @@ export default function StockPage() {
                           }}
                         />
                       ) : (
-                        <span className="text-xl font-bold text-gray-300">{article.nom.charAt(0).toUpperCase()}</span>
+                        <span className="text-xl font-bold text-gray-300 dark:text-gray-600">{article.nom.charAt(0).toUpperCase()}</span>
                       )}
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate">{article.nom}</h3>
-                      <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">{article.nom}</h3>
+                        {article.categorie && (
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium text-white flex-shrink-0"
+                            style={{ backgroundColor: article.categorie.couleur }}
+                          >
+                            {article.categorie.nom}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                         {article.taille && <span>{article.taille}</span>}
                         {article.taille && article.couleur && <span>·</span>}
                         {article.couleur && <span>{article.couleur}</span>}
@@ -270,9 +311,9 @@ export default function StockPage() {
 
                     {/* Price & Profit */}
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-medium text-gray-900">{formatPrice(article.prixVente)}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatPrice(article.prixVente)}</p>
                       {article.vendu > 0 && (
-                        <p className="text-xs text-green-600">+{formatPrice(article.benefice)}</p>
+                        <p className="text-xs text-green-600 dark:text-green-400">+{formatPrice(article.benefice)}</p>
                       )}
                     </div>
                   </div>
@@ -286,12 +327,11 @@ export default function StockPage() {
       {/* Floating Action Button */}
       <Link
         href="/article/nouveau"
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl active:shadow-md transition-all touch-manipulation z-40"
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl dark:shadow-gray-900/30 active:shadow-md transition-all touch-manipulation z-40"
         style={{ backgroundColor: accentColor }}
       >
         <Plus className="h-6 w-6" />
       </Link>
-      <AIAssistant />
     </div>
   );
 }
@@ -301,7 +341,7 @@ function StatPill({ icon, label, value, color, bg }: { icon: React.ReactNode; la
     <div className={`flex items-center space-x-2 px-3 py-2 rounded-xl ${bg} flex-shrink-0`}>
       <span className={color}>{icon}</span>
       <div>
-        <p className="text-xs text-gray-500">{label}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
         <p className={`text-sm font-semibold ${color}`}>{value}</p>
       </div>
     </div>

@@ -112,15 +112,6 @@ export default function AssistantPage() {
     if (input.trim()) handleSend(input);
   }
 
-  const handleClear = () => { setMessages([]); setSuggestions([]); };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim()) handleSend(input);
-  }
-
-  const handleClear = () => { setMessages([]); setSuggestions([]); };
-
   const formatTime = (date: Date) => date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
   return (
@@ -163,7 +154,7 @@ export default function AssistantPage() {
                 disabled={loading}
                 className="flex items-center space-x-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-400 dark:hover:bg-blue-400 active:bg-blue-100 dark:active:bg-blue-200 touch-manipulation transition-all disabled:opacity-50 flex-shrink-0"
               >
-                <span className="text-lg">{sugg.icon}</span>
+                <span className="text-lg">💡</span>
                 <span>{sugg.label}</span>
               </button>
             ))}
@@ -190,13 +181,14 @@ export default function AssistantPage() {
                     onClick={() => handleSuggestionClick(sugg.prompt)}
                     className="p-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-left hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-400 dark:hover:bg-blue-400 touch-manipulation transition-all"
                   >
-                    <p className="text-lg">{sugg.icon}</p>
+                    <p className="text-lg">💡</p>
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-600 mt-1">{sugg.label}</p>
                   </button>
                 ))}
               </div>
             </div>
           ) : (
+            <>
             <div className="space-y-4">
               {messages.map((msg, i) => (
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}>
@@ -225,10 +217,10 @@ export default function AssistantPage() {
               ))}
             </div>
             <div ref={messagesEndRef} />
-          </div>
+            </>
+          )}
         </div>
-
-        {/* Input Area - Fixed Bottom */}
+      </main>
         <div className="fixed bottom-0 left-0 right-0 max-w-4xl mx-auto px-4 pb-4">
           <form onSubmit={handleSubmit} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-300 dark:border-gray-600 p-3 shadow-lg">
             <div className="flex items-end space-x-2">
@@ -237,9 +229,8 @@ export default function AssistantPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={loading ? "Réflexion en cours..." : "Posez votre question..."}
-                className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                className="flex-1 px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none dark:bg-gray-900 dark:text-gray-100"
                 rows={1}
-                maxRows={5}
                 disabled={loading}
                 style={{ minHeight: '48px', fontFamily: 'inherit' }}
               />
@@ -261,7 +252,6 @@ export default function AssistantPage() {
             </div>
           </form>
         </div>
-      </main>
     </div>
   );
 }

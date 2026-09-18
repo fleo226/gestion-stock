@@ -85,10 +85,7 @@ export default function BoutiquePage() {
   };
 
   const envoyerCommande = async () => {
-    if (!nomClient.trim()) {
-      alert('Veuillez entrer votre nom');
-      return;
-    }
+    if (!nomClient.trim()) { alert('Veuillez entrer votre nom'); return; }
     setSending(true);
     try {
       const res = await fetch('/api/commandes', {
@@ -98,31 +95,18 @@ export default function BoutiquePage() {
           vendeurId,
           clientNom: nomClient.trim(),
           clientTel: telClient.trim() || null,
-          items: commande.map(item => ({
-            articleId: item.articleId,
-            quantite: item.quantite,
-            note: item.note || null,
-          })),
+          items: commande.map(item => ({ articleId: item.articleId, quantite: item.quantite, note: item.note || null })),
         }),
       });
       const data = await res.json();
       if (data.success) {
         setSent(true);
-        setTimeout(() => {
-          setShowCommande(false);
-          setSent(false);
-          setCommande([]);
-          setNomClient('');
-          setTelClient('');
-        }, 3000);
+        setTimeout(() => { setShowCommande(false); setSent(false); setCommande([]); setNomClient(''); setTelClient(''); }, 3000);
       } else {
         alert(data.error || 'Erreur lors de l\'envoi');
       }
-    } catch {
-      alert('Erreur de connexion');
-    } finally {
-      setSending(false);
-    }
+    } catch { alert('Erreur de connexion'); }
+    finally { setSending(false); }
   };
 
   const ouvrirWhatsApp = () => {
@@ -131,38 +115,32 @@ export default function BoutiquePage() {
       if (!article) return '';
       return `• ${article.nom} (x${item.quantite}) - ${(article.prixVente * item.quantite).toLocaleString()} FCFA`;
     }).filter(Boolean).join('\n');
-    
     const message = `Bonjour ! Je souhaite commander :\n\n${texte}\n\nTotal : ${getTotal().toLocaleString()} FCFA\n\nMerci !`;
-    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+    </div>
+  );
 
-  if (error || !vendeur) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-sm max-w-sm mx-4">
-          <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h1 className="text-xl font-semibold text-gray-900 mb-2">Boutique introuvable</h1>
-          <p className="text-gray-500">{error || 'Cette boutique n\'existe pas ou n\'est plus active.'}</p>
-        </div>
+  if (error || !vendeur) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm dark:shadow-none max-w-sm mx-4">
+        <Package className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Boutique introuvable</h1>
+        <p className="text-gray-500 dark:text-gray-400">{error || 'Cette boutique n\'existe pas ou n\'est plus active.'}</p>
       </div>
-    );
-  }
+    </div>
+  );
 
   const accentColor = vendeur.couleur || '#2563eb';
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
@@ -170,12 +148,12 @@ export default function BoutiquePage() {
                 {vendeur.nom.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">{vendeur.nom}</h1>
-                <p className="text-xs text-gray-500">{articles.length} articles</p>
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{vendeur.nom}</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{articles.length} articles</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-500">Catalogue</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Catalogue</p>
               <p className="text-sm font-medium" style={{ color: accentColor }}>Commandez !</p>
             </div>
           </div>
@@ -186,36 +164,36 @@ export default function BoutiquePage() {
       <main className="max-w-2xl mx-auto px-4 py-5">
         {articles.length === 0 ? (
           <div className="text-center py-12">
-            <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">Aucun article disponible</p>
+            <Package className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400">Aucun article disponible</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {articles.filter(a => a.quantite > 0).map(article => (
-              <div key={article.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+              <div key={article.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm dark:shadow-none">
                 {/* Photo */}
-                <div className="aspect-square bg-gray-100 relative">
+                <div className="aspect-square bg-gray-100 dark:bg-gray-700 relative">
                   {article.photoUrl ? (
                     <img src={article.photoUrl} alt={article.nom} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Package className="h-12 w-12 text-gray-300" />
+                      <Package className="h-12 w-12 text-gray-300 dark:text-gray-600" />
                     </div>
                   )}
                   {article.couleur && (
-                    <span className="absolute top-2 left-2 px-2 py-0.5 bg-white/90 text-xs font-medium rounded-full text-gray-700">
+                    <span className="absolute top-2 left-2 px-2 py-0.5 bg-white/90 dark:bg-gray-800/90 text-xs font-medium rounded-full text-gray-700 dark:text-gray-300">
                       {article.couleur}
                     </span>
                   )}
-                  <span className="absolute top-2 right-2 px-2 py-0.5 bg-white/90 text-xs font-medium rounded-full" style={{ color: accentColor }}>
+                  <span className="absolute top-2 right-2 px-2 py-0.5 bg-white/90 dark:bg-gray-800/90 text-xs font-medium rounded-full" style={{ color: accentColor }}>
                     {article.quantite} dispo
                   </span>
                 </div>
 
                 {/* Info */}
                 <div className="p-3">
-                  <h3 className="font-medium text-gray-900 text-sm truncate">{article.nom}</h3>
-                  {article.taille && <p className="text-xs text-gray-500">Taille : {article.taille}</p>}
+                  <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{article.nom}</h3>
+                  {article.taille && <p className="text-xs text-gray-500 dark:text-gray-400">Taille : {article.taille}</p>}
                   <p className="text-lg font-bold mt-1" style={{ color: accentColor }}>
                     {article.prixVente.toLocaleString()} <span className="text-xs font-normal">FCFA</span>
                   </p>
@@ -223,28 +201,14 @@ export default function BoutiquePage() {
                   {/* Add to cart */}
                   <div className="mt-2">
                     {getQuantite(article.id) === 0 ? (
-                      <button
-                        onClick={() => ajouterArticle(article.id)}
-                        className="w-full py-2 rounded-xl text-white text-sm font-medium active:scale-95 transition-transform"
-                        style={{ backgroundColor: accentColor }}
-                      >
+                      <button onClick={() => ajouterArticle(article.id)} className="w-full py-2 rounded-xl text-white text-sm font-medium active:scale-95 transition-transform" style={{ backgroundColor: accentColor }}>
                         Ajouter
                       </button>
                     ) : (
-                      <div className="flex items-center justify-between bg-gray-100 rounded-xl px-3 py-1">
-                        <button
-                          onClick={() => retirerArticle(article.id)}
-                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-red-600 active:bg-white rounded-lg"
-                        >
-                          -
-                        </button>
-                        <span className="font-semibold">{getQuantite(article.id)}</span>
-                        <button
-                          onClick={() => ajouterArticle(article.id)}
-                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-green-600 active:bg-white rounded-lg"
-                        >
-                          +
-                        </button>
+                      <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700 rounded-xl px-3 py-1">
+                        <button onClick={() => retirerArticle(article.id)} className="w-8 h-8 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-red-600 active:bg-white dark:active:bg-gray-600 rounded-lg">-</button>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">{getQuantite(article.id)}</span>
+                        <button onClick={() => ajouterArticle(article.id)} className="w-8 h-8 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-green-600 active:bg-white dark:active:bg-gray-600 rounded-lg">+</button>
                       </div>
                     )}
                   </div>
@@ -257,20 +221,14 @@ export default function BoutiquePage() {
 
       {/* Cart Bar */}
       {commande.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-50">
           <div className="max-w-2xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">{commande.length} article(s)</p>
-                <p className="text-xl font-bold" style={{ color: accentColor }}>
-                  {getTotal().toLocaleString()} FCFA
-                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{commande.length} article(s)</p>
+                <p className="text-xl font-bold" style={{ color: accentColor }}>{getTotal().toLocaleString()} FCFA</p>
               </div>
-              <button
-                onClick={() => setShowCommande(true)}
-                className="flex items-center space-x-2 px-6 py-3 rounded-xl text-white font-medium active:scale-95 transition-transform"
-                style={{ backgroundColor: accentColor }}
-              >
+              <button onClick={() => setShowCommande(true)} className="flex items-center space-x-2 px-6 py-3 rounded-xl text-white font-medium active:scale-95 transition-transform" style={{ backgroundColor: accentColor }}>
                 <ShoppingCart className="h-5 w-5" />
                 <span>Commander</span>
               </button>
@@ -282,90 +240,50 @@ export default function BoutiquePage() {
       {/* Commande Modal */}
       {showCommande && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => setShowCommande(false)}>
-          <div
-            className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl p-6 pb-8 sm:pb-6 max-h-[80vh] overflow-y-auto"
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="w-full sm:max-w-md bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl p-6 pb-8 sm:pb-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             {sent ? (
               <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="h-8 w-8 text-green-600" />
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Commande envoyée !</h3>
-                <p className="text-gray-500">Le vendeur vous contactera bientôt.</p>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Commande envoyée !</h3>
+                <p className="text-gray-500 dark:text-gray-400">Le vendeur vous contactera bientôt.</p>
               </div>
             ) : (
               <>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Ma commande</h3>
-
-                {/* Résumé */}
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Ma commande</h3>
                 <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
                   {commande.map(item => {
                     const article = articles.find(a => a.id === item.articleId);
                     if (!article) return null;
                     return (
-                      <div key={item.articleId} className="flex items-center justify-between py-2 border-b border-gray-100">
+                      <div key={item.articleId} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
                         <div className="flex-1">
-                          <p className="text-sm font-medium">{article.nom}</p>
-                          <p className="text-xs text-gray-500">x{item.quantite} • {article.prixVente.toLocaleString()} FCFA/u</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{article.nom}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">x{item.quantite} • {article.prixVente.toLocaleString()} FCFA/u</p>
                         </div>
-                        <p className="font-semibold text-sm">{(article.prixVente * item.quantite).toLocaleString()} FCFA</p>
+                        <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">{(article.prixVente * item.quantite).toLocaleString()} FCFA</p>
                       </div>
                     );
                   })}
                 </div>
-
-                <div className="flex items-center justify-between py-3 border-t font-bold text-lg">
+                <div className="flex items-center justify-between py-3 border-t border-gray-200 dark:border-gray-700 font-bold text-lg text-gray-900 dark:text-gray-100">
                   <span>Total</span>
                   <span style={{ color: accentColor }}>{getTotal().toLocaleString()} FCFA</span>
                 </div>
-
-                {/* Infos client */}
                 <div className="space-y-3 mb-4">
-                  <input
-                    type="text"
-                    value={nomClient}
-                    onChange={e => setNomClient(e.target.value)}
-                    placeholder="Votre nom *"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                  <input
-                    type="tel"
-                    value={telClient}
-                    onChange={e => setTelClient(e.target.value)}
-                    placeholder="Téléphone (optionnel)"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
+                  <input type="text" value={nomClient} onChange={e => setNomClient(e.target.value)} placeholder="Votre nom *" className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" />
+                  <input type="tel" value={telClient} onChange={e => setTelClient(e.target.value)} placeholder="Téléphone (optionnel)" className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" />
                 </div>
-
-                {/* Actions */}
                 <div className="space-y-3">
-                  <button
-                    onClick={envoyerCommande}
-                    disabled={sending || !nomClient.trim()}
-                    className="w-full py-3 rounded-xl text-white font-medium flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-95 transition-transform"
-                    style={{ backgroundColor: accentColor }}
-                  >
-                    {sending ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <>
-                        <Check className="h-5 w-5" />
-                        <span>Confirmer la commande</span>
-                      </>
-                    )}
+                  <button onClick={envoyerCommande} disabled={sending || !nomClient.trim()} className="w-full py-3 rounded-xl text-white font-medium flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-95 transition-transform" style={{ backgroundColor: accentColor }}>
+                    {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="h-5 w-5" /><span>Confirmer la commande</span></>}
                   </button>
-                  <button
-                    onClick={ouvrirWhatsApp}
-                    className="w-full py-3 rounded-xl bg-green-500 text-white font-medium flex items-center justify-center space-x-2 active:scale-95 transition-transform"
-                  >
+                  <button onClick={ouvrirWhatsApp} className="w-full py-3 rounded-xl bg-green-500 text-white font-medium flex items-center justify-center space-x-2 active:scale-95 transition-transform">
                     <MessageSquare className="h-5 w-5" />
                     <span>Envoyer par WhatsApp</span>
                   </button>
-                  <button
-                    onClick={() => setShowCommande(false)}
-                    className="w-full py-3 rounded-xl bg-gray-100 text-gray-700 font-medium active:bg-gray-200"
-                  >
+                  <button onClick={() => setShowCommande(false)} className="w-full py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium active:bg-gray-200 dark:active:bg-gray-600">
                     Annuler
                   </button>
                 </div>

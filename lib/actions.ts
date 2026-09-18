@@ -26,6 +26,8 @@ export type ArticleAvecVentes = {
   unite: string;
   photoUrl: string | null;
   creeLe: Date;
+  categorieId: string | null;
+  categorie: { id: string; nom: string; couleur: string } | null;
   mouvements?: MouvementData[];
   entreeTotal: number;
   vendu: number;
@@ -127,7 +129,7 @@ export async function getArticles(): Promise<ArticleAvecVentes[]> {
   if (!userId) return [];
   const articles = await db.article.findMany({
     where: { userId },
-    include: { mouvements: true },
+    include: { mouvements: true, categorie: { select: { id: true, nom: true, couleur: true } } },
     orderBy: { creeLe: "desc" },
   });
   return articles.map(enrichir);
@@ -138,7 +140,7 @@ export async function getArticle(id: string): Promise<ArticleAvecVentes | null> 
   if (!userId) return null;
   const article = await db.article.findFirst({
     where: { id, userId },
-    include: { mouvements: { orderBy: { date: "desc" } } },
+    include: { mouvements: { orderBy: { date: "desc" } }, categorie: { select: { id: true, nom: true, couleur: true } } },
   });
   return article ? enrichir(article) : null;
 }
@@ -227,24 +229,26 @@ export async function entreeArticle(articleId: string, quantite: number, prixUni
   const userId = await getUserId();
   if (!userId) return { error: "Non connecté" };
 
-  const article = await db.article.findFirst({ where: { id: articleId, userId } });
-  if (!article) return { error: "Article introuvable" };
-
   const qte = Math.max(1, Math.round(quantite));
 
-  await db.mouvement.create({
-    data: {
-      articleId,
-      type: "ENTREE",
-      quantite: qte,
-      prixUnitaire: Math.round(prixUnitaire),
-      note: note?.trim() || null,
-    },
-  });
+  await db.$transaction(async (tx) => {
+    const article = await tx.article.findFirst({ where: { id: articleId, userId } });
+    if (!article) throw new Error("Article introuvable");
 
-  await db.article.update({
-    where: { id: articleId },
-    data: { quantite: article.quantite + qte },
+    await tx.mouvement.create({
+      data: {
+        articleId,
+        type: "ENTREE",
+        quantite: qte,
+        prixUnitaire: Math.round(prixUnitaire),
+        note: note?.trim() || null,
+      },
+    });
+
+    await tx.article.update({
+      where: { id: articleId },
+      data: { quantite: article.quantite + qte },
+    });
   });
 
   revalidatePath("/");
@@ -257,27 +261,29 @@ export async function sortieArticle(articleId: string, quantite: number, prixUni
   const userId = await getUserId();
   if (!userId) return { error: "Non connecté" };
 
-  const article = await db.article.findFirst({ where: { id: articleId, userId } });
-  if (!article) return { error: "Article introuvable" };
-
   const qte = Math.max(1, Math.round(quantite));
-  if (qte > article.quantite) {
-    return { error: `Stock insuffisant. Disponible : ${article.quantite}` };
-  }
 
-  await db.mouvement.create({
-    data: {
-      articleId,
-      type: "SORTIE",
-      quantite: qte,
-      prixUnitaire: Math.round(prixUnitaire),
-      note: note?.trim() || null,
-    },
-  });
+  await db.$transaction(async (tx) => {
+    const article = await tx.article.findFirst({ where: { id: articleId, userId } });
+    if (!article) throw new Error("Article introuvable");
+    if (qte > article.quantite) {
+      throw new Error(`Stock insuffisant. Disponible : ${article.quantite}`);
+    }
 
-  await db.article.update({
-    where: { id: articleId },
-    data: { quantite: article.quantite - qte },
+    await tx.mouvement.create({
+      data: {
+        articleId,
+        type: "SORTIE",
+        quantite: qte,
+        prixUnitaire: Math.round(prixUnitaire),
+        note: note?.trim() || null,
+      },
+    });
+
+    await tx.article.update({
+      where: { id: articleId },
+      data: { quantite: article.quantite - qte },
+    });
   });
 
   revalidatePath("/");

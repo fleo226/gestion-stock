@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save, Package, Image, Camera, Trash2, Eye, Loader2 } from 'lucide-react';
 
 const UNITES = ['piece', 'paire', 'metre', 'kg', 'lot', 'sachet'];
 
+type Categorie = { id: string; nom: string; couleur: string };
+
 export default function NouvelArticlePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [categories, setCategories] = useState<Categorie[]>([]);
   const [formData, setFormData] = useState({
     nom: '',
     taille: '',
@@ -19,11 +22,19 @@ export default function NouvelArticlePage() {
     prixVente: '',
     quantite: '0',
     unite: 'piece',
-    photoUrl: ''
+    photoUrl: '',
+    categorieId: ''
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => { if (data.success) setCategories(data.data); })
+      .catch(() => {});
+  }, []);
 
   const handleImageUrlChange = (url: string) => {
     setFormData({ ...formData, photoUrl: url });
@@ -33,7 +44,6 @@ export default function NouvelArticlePage() {
   const handleImageUpload = async (file: File) => {
     setUploading(true);
     try {
-      // Convert to base64 for demo (in production, upload to Supabase Storage)
       const reader = new FileReader();
       reader.onload = () => {
         const base64 = reader.result as string;
@@ -65,7 +75,8 @@ export default function NouvelArticlePage() {
           prixVente: parseInt(formData.prixVente) || 0,
           quantite: parseInt(formData.quantite) || 0,
           unite: formData.unite,
-          photoUrl: formData.photoUrl.trim() || null
+          photoUrl: formData.photoUrl.trim() || null,
+          categorieId: formData.categorieId || null
         })
       });
 
@@ -93,33 +104,33 @@ export default function NouvelArticlePage() {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
+    e.currentTarget.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/30');
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/30');
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/30');
     if (e.dataTransfer.files[0]) {
       handleImageUpload(e.dataTransfer.files[0]);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <Link href="/stock" className="p-2 -ml-2 text-gray-500 hover:text-gray-700 active:bg-gray-100 rounded-lg touch-manipulation">
+              <Link href="/stock" className="p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 active:bg-gray-100 dark:active:bg-gray-700 rounded-lg touch-manipulation">
                 <ArrowLeft className="h-6 w-6" />
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">Nouvel article</h1>
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Nouvel article</h1>
             </div>
           </div>
         </div>
@@ -127,22 +138,21 @@ export default function NouvelArticlePage() {
 
       {/* Form */}
       <main className="max-w-2xl mx-auto px-4 py-6 pb-24">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm dark:shadow-none border border-gray-100 dark:border-gray-700 p-5">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm animate-pop">
+              <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl text-sm animate-pop">
                 {error}
               </div>
             )}
 
-            {/* Photo Section - Mobile Optimized */}
+            {/* Photo Section */}
             <fieldset className="space-y-3">
-              <legend className="block text-sm font-medium text-gray-700">Photo de l'article</legend>
+              <legend className="block text-sm font-medium text-gray-700 dark:text-gray-300">Photo de l'article</legend>
               
-              {/* Preview / Drop Zone */}
               <div className="relative">
                 <div
-                  className={`w-full aspect-square max-w-xs mx-auto rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center transition-colors touch-manipulation ${
+                  className={`w-full aspect-square max-w-xs mx-auto rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center transition-colors touch-manipulation ${
                     previewUrl ? 'border-transparent' : ''
                   }`}
                   onDragOver={handleDragOver}
@@ -152,53 +162,28 @@ export default function NouvelArticlePage() {
                 >
                   {previewUrl ? (
                     <>
-                      <img
-                        src={previewUrl}
-                        alt="Aperçu"
-                        className="w-full h-full object-cover rounded-xl"
-                      />
-                      <button
-                        type="button"
-                        onClick={removeImage}
-                        className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors touch-manipulation"
-                        aria-label="Supprimer la photo"
-                      >
+                      <img src={previewUrl} alt="Aperçu" className="w-full h-full object-cover rounded-xl" />
+                      <button type="button" onClick={removeImage} className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors touch-manipulation" aria-label="Supprimer la photo">
                         <Trash2 className="h-5 w-5" />
                       </button>
                     </>
                   ) : (
                     <div className="text-center p-4">
-                      <div className="mx-auto mb-2 p-3 bg-gray-100 rounded-xl">
-                        <Camera className="h-8 w-8 text-gray-400" />
+                      <div className="mx-auto mb-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                        <Camera className="h-8 w-8 text-gray-400 dark:text-gray-500" />
                       </div>
-                      <p className="text-sm text-gray-600">Touchez pour ajouter une photo</p>
-                      <p className="text-xs text-gray-400 mt-1">URL ou glisser-déposer</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Touchez pour ajouter une photo</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">URL ou glisser-déposer</p>
                     </div>
                   )}
                 </div>
 
-                {/* Hidden file input */}
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  aria-label="Choisir une photo"
-                />
+                <input type="file" accept="image/*" capture="environment" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" aria-label="Choisir une photo" />
 
-                {/* URL Input */}
                 <div className="mt-3">
-                  <input
-                    type="url"
-                    value={formData.photoUrl}
-                    onChange={(e) => handleImageUrlChange(e.target.value)}
-                    placeholder="https://exemple.com/photo.jpg"
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    disabled={!!previewUrl && !formData.photoUrl.startsWith('http')}
-                  />
+                  <input type="url" value={formData.photoUrl} onChange={(e) => handleImageUrlChange(e.target.value)} placeholder="https://exemple.com/photo.jpg" className="w-full px-4 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" disabled={!!previewUrl && !formData.photoUrl.startsWith('http')} />
                   {previewUrl && !formData.photoUrl.startsWith('http') && (
-                    <p className="text-xs text-green-600 mt-1">Photo ajoutée depuis l'appareil</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">Photo ajoutée depuis l'appareil</p>
                   )}
                 </div>
               </div>
@@ -206,150 +191,88 @@ export default function NouvelArticlePage() {
 
             {/* Nom */}
             <div>
-              <label htmlFor="nom" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="nom" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Nom de l'article <span className="text-red-500">*</span>
               </label>
-              <input
-                id="nom"
-                type="text"
-                value={formData.nom}
-                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                placeholder="Ex: Robe traditionnelle"
-                required
-                autoComplete="off"
-              />
+              <input id="nom" type="text" value={formData.nom} onChange={(e) => setFormData({ ...formData, nom: e.target.value })} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" placeholder="Ex: Robe traditionnelle" required autoComplete="off" />
+            </div>
+
+            {/* Catégorie */}
+            <div>
+              <label htmlFor="categorieId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Catégorie</label>
+              <select
+                id="categorieId"
+                value={formData.categorieId}
+                onChange={(e) => setFormData({ ...formData, categorieId: e.target.value })}
+                className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-900 dark:text-gray-100 appearance-none"
+              >
+                <option value="">Sans catégorie</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.nom}</option>
+                ))}
+              </select>
             </div>
 
             {/* Taille & Couleur */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="taille" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Taille
-                </label>
-                <input
-                  id="taille"
-                  type="text"
-                  value={formData.taille}
-                  onChange={(e) => setFormData({ ...formData, taille: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  placeholder="Ex: M, XL, 42"
-                  autoComplete="off"
-                />
+                <label htmlFor="taille" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Taille</label>
+                <input id="taille" type="text" value={formData.taille} onChange={(e) => setFormData({ ...formData, taille: e.target.value })} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" placeholder="Ex: M, XL, 42" autoComplete="off" />
               </div>
               <div>
-                <label htmlFor="couleur" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Couleur
-                </label>
-                <input
-                  id="couleur"
-                  type="text"
-                  value={formData.couleur}
-                  onChange={(e) => setFormData({ ...formData, couleur: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  placeholder="Ex: rouge, bleu"
-                  autoComplete="off"
-                />
+                <label htmlFor="couleur" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Couleur</label>
+                <input id="couleur" type="text" value={formData.couleur} onChange={(e) => setFormData({ ...formData, couleur: e.target.value })} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" placeholder="Ex: rouge, bleu" autoComplete="off" />
               </div>
             </div>
 
             {/* Prix */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="prixAchat" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Prix d'achat (FCFA)
-                </label>
-                <input
-                  id="prixAchat"
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
-                  value={formData.prixAchat}
-                  onChange={(e) => setFormData({ ...formData, prixAchat: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  placeholder="0"
-                />
+                <label htmlFor="prixAchat" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Prix d'achat (FCFA)</label>
+                <input id="prixAchat" type="number" min="0" inputMode="numeric" value={formData.prixAchat} onChange={(e) => setFormData({ ...formData, prixAchat: e.target.value })} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" placeholder="0" />
               </div>
               <div>
-                <label htmlFor="prixVente" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Prix de vente (FCFA)
-                </label>
-                <input
-                  id="prixVente"
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
-                  value={formData.prixVente}
-                  onChange={(e) => setFormData({ ...formData, prixVente: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  placeholder="0"
-                />
+                <label htmlFor="prixVente" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Prix de vente (FCFA)</label>
+                <input id="prixVente" type="number" min="0" inputMode="numeric" value={formData.prixVente} onChange={(e) => setFormData({ ...formData, prixVente: e.target.value })} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" placeholder="0" />
               </div>
             </div>
 
             {/* Quantite & Unite */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="quantite" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Quantité initiale
-                </label>
-                <input
-                  id="quantite"
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
-                  value={formData.quantite}
-                  onChange={(e) => setFormData({ ...formData, quantite: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  placeholder="0"
-                />
+                <label htmlFor="quantite" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Quantité initiale</label>
+                <input id="quantite" type="number" min="0" inputMode="numeric" value={formData.quantite} onChange={(e) => setFormData({ ...formData, quantite: e.target.value })} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" placeholder="0" />
               </div>
               <div>
-                <label htmlFor="unite" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Unité
-                </label>
-                <select
-                  id="unite"
-                  value={formData.unite}
-                  onChange={(e) => setFormData({ ...formData, unite: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white appearance-none"
-                >
-                  {UNITES.map(u => (
-                    <option key={u} value={u}>{u.charAt(0).toUpperCase() + u.slice(1)}</option>
-                  ))}
+                <label htmlFor="unite" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Unité</label>
+                <select id="unite" value={formData.unite} onChange={(e) => setFormData({ ...formData, unite: e.target.value })} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-900 dark:text-gray-100 appearance-none">
+                  {UNITES.map(u => (<option key={u} value={u}>{u.charAt(0).toUpperCase() + u.slice(1)}</option>))}
                 </select>
               </div>
             </div>
 
-            {/* Bénéfice estimé - Visual feedback */}
+            {/* Bénéfice estimé */}
             {formData.prixAchat && formData.prixVente && parseInt(formData.prixVente) > parseInt(formData.prixAchat) && (
-              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
-                <div className="flex items-center space-x-2 text-green-700 mb-1">
+              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-200 dark:border-green-800 rounded-xl">
+                <div className="flex items-center space-x-2 text-green-700 dark:text-green-400 mb-1">
                   <Package className="h-5 w-5" />
                   <span className="font-medium">Bénéfice estimé par unité</span>
                 </div>
-                <p className="text-2xl font-bold text-green-700">
+                <p className="text-2xl font-bold text-green-700 dark:text-green-400">
                   {(parseInt(formData.prixVente) - parseInt(formData.prixAchat)).toLocaleString()} FCFA
                 </p>
-                <p className="text-sm text-green-600 mt-1">
+                <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                   Marge : {Math.round(((parseInt(formData.prixVente) - parseInt(formData.prixAchat)) / parseInt(formData.prixAchat)) * 100)}%
                 </p>
               </div>
             )}
 
             {/* Submit */}
-            <div className="flex items-center justify-end space-x-3 pt-2 border-t border-gray-100">
-              <Link
-                href="/stock"
-                className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 font-medium text-base touch-manipulation active:bg-gray-300"
-              >
+            <div className="flex items-center justify-end space-x-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+              <Link href="/stock" className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 font-medium text-base touch-manipulation active:bg-gray-300 dark:active:bg-gray-500">
                 <span>Annuler</span>
               </Link>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium text-base touch-manipulation active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <button type="submit" disabled={loading} className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 font-medium text-base touch-manipulation active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed">
                 <Save className="h-5 w-5" />
                 <span>{loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Enregistrer'}</span>
               </button>

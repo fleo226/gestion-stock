@@ -7,6 +7,8 @@ import { ArrowLeft, Save, Package, Camera, Trash2, Image, Loader2 } from 'lucide
 
 const UNITES = ['piece', 'paire', 'metre', 'kg', 'lot', 'sachet'];
 
+type Categorie = { id: string; nom: string; couleur: string };
+
 export default function ModifierArticlePage() {
   const params = useParams();
   const router = useRouter();
@@ -14,8 +16,9 @@ export default function ModifierArticlePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [categories, setCategories] = useState<Categorie[]>([]);
   const [formData, setFormData] = useState({
-    nom: '', taille: '', couleur: '', prixAchat: '', prixVente: '', unite: 'piece', photoUrl: ''
+    nom: '', taille: '', couleur: '', prixAchat: '', prixVente: '', unite: 'piece', photoUrl: '', categorieId: ''
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -49,13 +52,18 @@ export default function ModifierArticlePage() {
         if (data.success) {
           const a = data.data;
           setFormData({
-            nom: a.nom, taille: a.taille || '', couleur: a.couleur || '', prixAchat: String(a.prixAchat), prixVente: String(a.prixVente), unite: a.unite, photoUrl: a.photoUrl || ''
+            nom: a.nom, taille: a.taille || '', couleur: a.couleur || '', prixAchat: String(a.prixAchat), prixVente: String(a.prixVente), unite: a.unite, photoUrl: a.photoUrl || '', categorieId: a.categorieId || ''
           });
           if (a.photoUrl) setPreviewUrl(a.photoUrl);
         } else { setError('Article introuvable'); }
       })
       .catch(() => setError('Erreur de chargement'))
       .finally(() => setLoading(false));
+
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => { if (data.success) setCategories(data.data); })
+      .catch(() => {});
   }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,7 +75,7 @@ export default function ModifierArticlePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'update', id, nom: formData.nom.trim(), taille: formData.taille.trim() || null, couleur: formData.couleur.trim() || null, prixAchat: parseInt(formData.prixAchat) || 0, prixVente: parseInt(formData.prixVente) || 0, unite: formData.unite, photoUrl: formData.photoUrl.trim() || null
+          action: 'update', id, nom: formData.nom.trim(), taille: formData.taille.trim() || null, couleur: formData.couleur.trim() || null, prixAchat: parseInt(formData.prixAchat) || 0, prixVente: parseInt(formData.prixVente) || 0, unite: formData.unite, photoUrl: formData.photoUrl.trim() || null, categorieId: formData.categorieId || null
         })
       });
       const data = await res.json();
@@ -78,21 +86,21 @@ export default function ModifierArticlePage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center space-x-2 h-14">
-            <Link href={`/article/${id}`} className="p-2 -ml-2 text-gray-500 hover:text-gray-700 active:bg-gray-100 rounded-xl touch-manipulation">
+            <Link href={`/article/${id}`} className="p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 active:bg-gray-100 dark:active:bg-gray-700 rounded-xl touch-manipulation">
               <ArrowLeft className="h-6 w-6" />
             </Link>
-            <h1 className="text-lg font-semibold text-gray-900">Modifier</h1>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Modifier</h1>
           </div>
         </div>
       </header>
@@ -100,16 +108,16 @@ export default function ModifierArticlePage() {
       <main className="max-w-2xl mx-auto px-4 py-5">
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm animate-pop">
+            <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl text-sm animate-pop">
               {error}
             </div>
           )}
 
           {/* Photo */}
           <fieldset className="space-y-3">
-            <legend className="block text-sm font-medium text-gray-700">Photo</legend>
+            <legend className="block text-sm font-medium text-gray-700 dark:text-gray-300">Photo</legend>
             <div className="relative">
-              <div className="w-full aspect-square max-w-xs mx-auto rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center transition-colors touch-manipulation" style={{ backgroundColor: previewUrl ? 'transparent' : undefined }}>
+              <div className="w-full aspect-square max-w-xs mx-auto rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center transition-colors touch-manipulation" style={{ backgroundColor: previewUrl ? 'transparent' : undefined }}>
                 {previewUrl ? (
                   <>
                     <img src={previewUrl} alt="Aperçu" className="w-full h-full object-cover rounded-xl" />
@@ -132,67 +140,83 @@ export default function ModifierArticlePage() {
                 value={formData.photoUrl}
                 onChange={e => handleImageUrlChange(e.target.value)}
                 placeholder="https://... (optionnel)"
-                className="mt-3 w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                className="mt-3 w-full px-4 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100"
                 disabled={!!previewUrl && !formData.photoUrl.startsWith('http')}
               />
               {previewUrl && !formData.photoUrl.startsWith('http') && (
-                <p className="text-xs text-green-600 mt-1">Photo depuis l'appareil</p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">Photo depuis l'appareil</p>
               )}
             </div>
           </fieldset>
 
           {/* Nom */}
           <div>
-            <label htmlFor="nom" className="block text-sm font-medium text-gray-700 mb-1.5">Nom <span className="text-red-500">*</span></label>
-            <input id="nom" type="text" value={formData.nom} onChange={e => setFormData({...formData, nom: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required />
+            <label htmlFor="nom" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Nom <span className="text-red-500">*</span></label>
+            <input id="nom" type="text" value={formData.nom} onChange={e => setFormData({...formData, nom: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" required />
+          </div>
+
+          {/* Catégorie */}
+          <div>
+            <label htmlFor="categorieId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Catégorie</label>
+            <select
+              id="categorieId"
+              value={formData.categorieId}
+              onChange={e => setFormData({...formData, categorieId: e.target.value})}
+              className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-900 dark:text-gray-100 appearance-none"
+            >
+              <option value="">Sans catégorie</option>
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>{c.nom}</option>
+              ))}
+            </select>
           </div>
 
           {/* Taille & Couleur */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Taille</label>
-              <input type="text" value={formData.taille} onChange={e => setFormData({...formData, taille: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: M, XL, 42" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Taille</label>
+              <input type="text" value={formData.taille} onChange={e => setFormData({...formData, taille: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" placeholder="Ex: M, XL, 42" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Couleur</label>
-              <input type="text" value={formData.couleur} onChange={e => setFormData({...formData, couleur: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: rouge, bleu" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Couleur</label>
+              <input type="text" value={formData.couleur} onChange={e => setFormData({...formData, couleur: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" placeholder="Ex: rouge, bleu" />
             </div>
           </div>
 
           {/* Prix */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Prix d'achat (FCFA)</label>
-              <input type="number" min="0" inputMode="numeric" value={formData.prixAchat} onChange={e => setFormData({...formData, prixAchat: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Prix d'achat (FCFA)</label>
+              <input type="number" min="0" inputMode="numeric" value={formData.prixAchat} onChange={e => setFormData({...formData, prixAchat: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" placeholder="0" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Prix de vente (FCFA)</label>
-              <input type="number" min="0" inputMode="numeric" value={formData.prixVente} onChange={e => setFormData({...formData, prixVente: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Prix de vente (FCFA)</label>
+              <input type="number" min="0" inputMode="numeric" value={formData.prixVente} onChange={e => setFormData({...formData, prixVente: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-900 dark:text-gray-100" placeholder="0" />
             </div>
           </div>
 
           {/* Unite */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Unité</label>
-            <select value={formData.unite} onChange={e => setFormData({...formData, unite: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white appearance-none">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Unité</label>
+            <select value={formData.unite} onChange={e => setFormData({...formData, unite: e.target.value})} className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-900 dark:text-gray-100 appearance-none">
               {UNITES.map(u => <option key={u} value={u}>{u.charAt(0).toUpperCase() + u.slice(1)}</option>)}
             </select>
           </div>
 
           {/* Bénéfice estimé */}
           {formData.prixAchat && formData.prixVente && parseInt(formData.prixVente) > parseInt(formData.prixAchat) && (
-            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
-              <p className="text-2xl font-bold text-green-700">{(parseInt(formData.prixVente) - parseInt(formData.prixAchat)).toLocaleString()} FCFA</p>
-              <p className="text-sm text-green-600 mt-1">Marge : {Math.round(((parseInt(formData.prixVente) - parseInt(formData.prixAchat)) / parseInt(formData.prixAchat)) * 100)}%</p>
+            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-200 dark:border-green-800 rounded-xl">
+              <p className="text-2xl font-bold text-green-700 dark:text-green-400">{(parseInt(formData.prixVente) - parseInt(formData.prixAchat)).toLocaleString()} FCFA</p>
+              <p className="text-sm text-green-600 dark:text-green-400 mt-1">Marge : {Math.round(((parseInt(formData.prixVente) - parseInt(formData.prixAchat)) / parseInt(formData.prixAchat)) * 100)}%</p>
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex space-x-3 pt-2 border-t border-gray-100">
-            <Link href={`/article/${id}`} className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 text-gray-700 bg-gray-100 rounded-xl font-medium active:bg-gray-200 touch-manipulation">
+          <div className="flex space-x-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+            <Link href={`/article/${id}`} className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl font-medium active:bg-gray-200 dark:active:bg-gray-600 touch-manipulation">
               <span>Annuler</span>
             </Link>
-            <button type="submit" disabled={saving} className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium active:bg-blue-800 touch-manipulation disabled:opacity-50">
+            <button type="submit" disabled={saving} className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium active:bg-blue-800 touch-manipulation disabled:opacity-50">
               <Save className="h-5 w-5" />
               <span>{saving ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Enregistrer'}</span>
             </button>

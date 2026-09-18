@@ -53,16 +53,16 @@ export default function ActivitePage() {
   const filtered = filter === 'all' ? mouvements : mouvements.filter(m => m.type === filter);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center space-x-2 h-14">
-            <Link href="/stock" className="p-2 -ml-2 text-gray-500 hover:text-gray-700 active:bg-gray-100 rounded-xl touch-manipulation">
+            <Link href="/stock" className="p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 active:bg-gray-100 dark:active:bg-gray-700 rounded-xl touch-manipulation">
               <ArrowLeft className="h-6 w-6" />
             </Link>
-            <h1 className="text-lg font-semibold text-gray-900">Activité</h1>
-            <span className="text-sm text-gray-400 ml-1">({mouvements.length})</span>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Activité</h1>
+            <span className="text-sm text-gray-400 dark:text-gray-500 ml-1">({mouvements.length})</span>
           </div>
         </div>
       </header>
@@ -75,15 +75,15 @@ export default function ActivitePage() {
             count={mouvements.length}
             active={filter === 'all'}
             onClick={() => setFilter('all')}
-            color="bg-gray-100 text-gray-700"
-            activeColor="bg-gray-900 text-white"
+            color="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+            activeColor="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
           />
           <FilterPill
             label="Entrées"
             count={mouvements.filter(m => m.type === 'ENTREE').length}
             active={filter === 'ENTREE'}
             onClick={() => setFilter('ENTREE')}
-            color="bg-emerald-50 text-emerald-700"
+            color="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
             activeColor="bg-emerald-600 text-white"
           />
           <FilterPill
@@ -91,7 +91,7 @@ export default function ActivitePage() {
             count={mouvements.filter(m => m.type === 'SORTIE').length}
             active={filter === 'SORTIE'}
             onClick={() => setFilter('SORTIE')}
-            color="bg-red-50 text-red-700"
+            color="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400"
             activeColor="bg-red-600 text-white"
           />
         </div>
@@ -99,53 +99,53 @@ export default function ActivitePage() {
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-white rounded-xl p-4 animate-pulse flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-lg" />
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 animate-pulse flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-1/3" />
-                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
                 </div>
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-2xl p-10 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Clock className="h-8 w-8 text-gray-300" />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-10 text-center">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Clock className="h-8 w-8 text-gray-300 dark:text-gray-600" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">Aucun mouvement</h3>
-            <p className="text-gray-500 text-sm">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Aucun mouvement</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
               {filter === 'all' ? 'Les entrées et sorties apparaîtront ici' : `Aucune ${filter === 'ENTREE' ? 'entrée' : 'sortie'} enregistrée`}
             </p>
           </div>
         ) : (
           <div className="space-y-2">
             {filtered.map(m => (
-              <div key={m.id} className="bg-white rounded-xl border border-gray-100 p-4 active:bg-gray-50 touch-manipulation transition-colors">
+              <div key={m.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 active:bg-gray-50 dark:active:bg-gray-700 touch-manipulation transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      m.type === 'ENTREE' ? 'bg-emerald-100' : 'bg-red-100'
+                      m.type === 'ENTREE' ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-red-100 dark:bg-red-900/40'
                     }`}>
                       {m.type === 'ENTREE' ? (
-                        <ArrowUpRight className="h-5 w-5 text-emerald-600" />
+                        <ArrowUpRight className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                       ) : (
-                        <ArrowDownRight className="h-5 w-5 text-red-600" />
+                        <ArrowDownRight className="h-5 w-5 text-red-600 dark:text-red-400" />
                       )}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{m.article.nom}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{m.article.nom}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {m.type === 'ENTREE' ? '+' : '-'}{m.quantite} {m.article.unite}
-                        {m.note && <span className="text-gray-400"> · {m.note}</span>}
+                        {m.note && <span className="text-gray-400 dark:text-gray-500"> · {m.note}</span>}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-sm font-semibold ${m.type === 'ENTREE' ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <p className={`text-sm font-semibold ${m.type === 'ENTREE' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                       {m.type === 'ENTREE' ? '+' : '-'}{formatPrice(m.quantite * m.prixUnitaire)}
                     </p>
-                    <p className="text-xs text-gray-400">{formatDate(m.date)}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">{formatDate(m.date)}</p>
                   </div>
                 </div>
               </div>
@@ -169,7 +169,7 @@ function FilterPill({ label, count, active, onClick, color, activeColor }: {
       }`}
     >
       <span>{label}</span>
-      <span className={`text-xs px-1.5 py-0.5 rounded-md ${active ? 'bg-white/20' : 'bg-white'}`}>{count}</span>
+      <span className={`text-xs px-1.5 py-0.5 rounded-md ${active ? 'bg-white/20' : 'bg-white dark:bg-gray-600'}`}>{count}</span>
     </button>
   );
 }
