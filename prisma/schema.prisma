@@ -13,14 +13,34 @@ datasource db {
 
 // Le compte de la commerçante
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  nom          String
-  passwordHash String
-  couleur      String    @default("#2563eb") // couleur d'accent choisie
-  creeLe       DateTime  @default(now())
-  articles     Article[]
-  categories   Categorie[]
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  nom                  String
+  passwordHash         String
+  couleur              String    @default("#2563eb") // couleur d'accent par défaut (profil)
+  creeLe               DateTime  @default(now())
+  articles             Article[]
+  categories           Categorie[]
+
+  // === BOUTIQUE PUBLIQUE ===
+  boutiqueActive       Boolean   @default(false)
+  boutiqueNom          String?   // Nom affiché en header public
+  boutiqueDescription  String?   // Description courte
+  boutiqueLogoUrl      String?   // Logo boutique (upload futur)
+  boutiqueSlug         String?   @unique // URL courte: /b/[slug]
+  boutiqueAccentColor  String    @default("#2563eb") // Couleur d'accent boutique (différent de profil)
+  boutiqueWhatsApp     String?   // Format: "22670123456" (sans +)
+
+  // Orange Money Config
+  orangeMoneyType      OrangeMoneyType @default(PARTICULIER)
+  orangeMoneyCodeMarchand String?  // 6 chiffres si MARCHAND
+  orangeMoneyNumero    String?     // Numéro tel si PARTICULIER (format: "22670123456")
+  orangeMoneyNomAffichage String?  // Nom affiché dans instructions: "Aminata Boutique"
+}
+
+enum OrangeMoneyType {
+  MARCHAND
+  PARTICULIER
 }
 
 // Catégorie / Collection — appartient à UNE commerçante
@@ -54,6 +74,7 @@ model Article {
   photoUrl   String?    // URL de la photo dans Supabase Storage
   creeLe     DateTime   @default(now())
   mouvements Mouvement[]
+  commandeLignes CommandeLigne[] // Relation inverse pour CommandeLigne
 
   @@index([userId])
   @@index([categorieId])
@@ -69,4 +90,42 @@ model Mouvement {
   prixUnitaire Int      // prix appliqué (achat pour entrée, vente pour sortie)
   date         DateTime @default(now())
   note         String?  // ex: "commande 15 pièces", "client Aminata"
+}
+
+// === COMMANDES BOUTIQUE PUBLIQUE ===
+model Commande {
+  id              String         @id @default(cuid())
+  vendeurId       String
+  clientNom       String
+  clientTelephone String?
+  clientAdresse   String?
+  clientNote      String?
+  total           Int            // FCFA
+  statut          StatutCommande @default(EN_ATTENTE_PAIEMENT)
+  referencePaiement String?      // ID transaction Orange Money (fourni par client)
+  creeLe          DateTime       @default(now())
+  valideeLe       DateTime?
+  lignes          CommandeLigne[]
+
+  @@index([vendeurId])
+  @@index([statut])
+  @@index([creeLe])
+}
+
+enum StatutCommande {
+  EN_ATTENTE_PAIEMENT
+  EN_ATTENTE_VALIDATION
+  CONFIRMEE
+  ANNULEE
+}
+
+model CommandeLigne {
+  id        String   @id @default(cuid())
+  commandeId String
+  commande  Commande @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id])
+  quantite  Int
+  prixUnitaire Int   // Prix au moment de la commande (snapshot)
+  @@index([commandeId])
 }
