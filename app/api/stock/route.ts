@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { 
   getArticles, 
   creerArticle, 
@@ -42,13 +43,23 @@ export async function GET(request: NextRequest) {
   }
 }
 
+async function getUserIdFromCookie(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get('userId')?.value ?? null;
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getUserIdFromCookie();
+    if (!userId) {
+      return NextResponse.json({ error: 'Non connecté' }, { status: 401 });
+    }
+
     const { action, ...data } = await request.json();
 
     switch (action) {
       case 'create': {
-        const result = await creerArticle(data);
+        const result = await creerArticle(data, userId);
         if (result.error) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
@@ -58,7 +69,7 @@ export async function POST(request: NextRequest) {
       case 'update': {
         const { id, ...input } = data;
         if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 });
-        const result = await modifierArticle(id, input);
+        const result = await modifierArticle(id, input, userId);
         if (result.error) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
@@ -68,7 +79,7 @@ export async function POST(request: NextRequest) {
       case 'delete': {
         const { id } = data;
         if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 });
-        const result = await supprimerArticle(id);
+        const result = await supprimerArticle(id, userId);
         if (result.error) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
@@ -78,7 +89,7 @@ export async function POST(request: NextRequest) {
       case 'entree': {
         const { articleId, quantite, prixUnitaire, note } = data;
         if (!articleId || !quantite) return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 });
-        const result = await entreeArticle(articleId, quantite, prixUnitaire, note);
+        const result = await entreeArticle(articleId, quantite, prixUnitaire, note, userId);
         if (result.error) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
@@ -88,7 +99,7 @@ export async function POST(request: NextRequest) {
       case 'sortie': {
         const { articleId, quantite, prixUnitaire, note } = data;
         if (!articleId || !quantite) return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 });
-        const result = await sortieArticle(articleId, quantite, prixUnitaire, note);
+        const result = await sortieArticle(articleId, quantite, prixUnitaire, note, userId);
         if (result.error) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
@@ -102,10 +113,7 @@ export async function POST(request: NextRequest) {
 
         await db.user.update({
           where: { id: user.id },
-          data: {
-            nom: nom.trim(),
-            couleur: couleur || '#2563eb'
-          }
+          data: { nom: nom.trim(), couleur: couleur || '#2563eb' },
         });
 
         return NextResponse.json({ success: true });
