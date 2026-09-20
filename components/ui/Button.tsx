@@ -1,9 +1,11 @@
-import { ButtonHTMLAttributes, forwardRef } from 'react';
-import { cn } from '@/lib/utils';
+"use client";
+
+import { ButtonHTMLAttributes, forwardRef } from "react";
+import { cn } from "@/lib/utils";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg" | "xl";
   loading?: boolean;
   fullWidth?: boolean;
   iconLeft?: React.ReactNode;
@@ -14,8 +16,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
       children,
-      variant = 'primary',
-      size = 'md',
+      variant = "primary",
+      size = "md",
       loading = false,
       fullWidth = false,
       iconLeft,
@@ -37,7 +39,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const variants = {
       primary: `
         bg-[var(--primary)] text-white
-        hover:bg-[var(--primary-hover)] active:bg-[var(--primary-hover)]
+        hover:bg-[var(--primary-hover)] active:bg-[var(--primary-active)]
         focus-visible:ring-[var(--primary)]
         shadow-sm hover:shadow-md
       `,
@@ -49,7 +51,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       `,
       outline: `
         bg-transparent text-[var(--primary)] border-2 border-[var(--primary)]
-        hover:bg-[var(--primary)]/10 active:bg-[var(--primary)]
+        hover:bg-[var(--accent-light)] active:bg-[var(--primary)]
         active:text-white focus-visible:ring-[var(--primary)]
       `,
       ghost: `
@@ -66,13 +68,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const sizes = {
-      sm: 'px-3 py-1.5 text-sm gap-1.5 min-h-[40px]',
-      md: 'px-4 py-2 text-base gap-2 min-h-[44px]',
-      lg: 'px-6 py-3 text-lg gap-2 min-h-[48px]',
-      xl: 'px-8 py-4 text-xl gap-2.5 min-h-[52px]',
+      sm: "px-3 py-1.5 text-sm gap-1.5 min-h-[40px]",
+      md: "px-4 py-2 text-base gap-2 min-h-[44px]",
+      lg: "px-6 py-3 text-lg gap-2 min-h-[48px]",
+      xl: "px-8 py-4 text-xl gap-2.5 min-h-[52px]",
     };
 
-    const widthClass = fullWidth ? 'w-full' : '';
+    const widthClass = fullWidth ? "w-full" : "";
 
     return (
       <button
@@ -116,4 +118,4 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   }
 );
 
-Button.displayName = 'Button';
+Button.displayName = "Button";
