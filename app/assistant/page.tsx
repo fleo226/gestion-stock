@@ -13,13 +13,19 @@ type Message = {
   streaming?: boolean;
 };
 
+type Suggestion = {
+  label: string;
+  prompt: string;
+  icon: React.ReactNode;
+};
+
 export default function AssistantPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
-  const [suggestions, setSuggestions] = useState<Array<{label: string; prompt: string}>>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -64,32 +70,32 @@ export default function AssistantPage() {
 
         // Update suggestions based on response
         const lower = data.response.toLowerCase();
-        let newSuggs: Array<{label: string; prompt: string}> = [];
+        let newSuggs: Array<{label: string; prompt: string; icon: React.ReactNode}> = [];
         if (lower.includes('marge') || lower.includes('profit') || lower.includes('bénéfice')) {
-          newSuggs.push({label: "Améliorer ma marge", prompt: "Comment puis-je augmenter ma marge sur cet article ?"});
-          newSuggs.push({label: "Analyse des coûts", prompt: "Quels sont mes coûts principaux qui réduisent ma marge ?"});
+          newSuggs.push({label: "Améliorer ma marge", prompt: "Comment puis-je augmenter ma marge sur cet article ?", icon: <Sparkles className="h-4 w-4" />});
+          newSuggs.push({label: "Analyse des coûts", prompt: "Quels sont mes coûts principaux qui réduisent ma marge ?", icon: <Sparkles className="h-4 w-4" />});
         }
         if (lower.includes('rupture') || lower.includes('stock') || lower.includes('réapprovisionner')) {
-          newSuggs.push({label: "Articles à réapprovisionner", prompt: "Quels articles dois-je commander cette semaine ?"});
-          newSuggs.push({label: "Prévision des ventes", prompt: "Quelle quantité devrais-je prévoir pour le mois prochain ?"});
+          newSuggs.push({label: "Articles à réapprovisionner", prompt: "Quels articles dois-je commander cette semaine ?", icon: <Package className="h-4 w-4" />});
+          newSuggs.push({label: "Prévision des ventes", prompt: "Quelle quantité devrais-je prévoir pour le mois prochain ?", icon: <Package className="h-4 w-4" />});
         }
         if (lower.includes('vente') || lower.includes('ca') || lower.includes('chiffre d\'affaires')) {
-          newSuggs.push({label: "Booster mes ventes", prompt: "Quelles actions puis-je mettre en place pour augmenter mes ventes ?"});
-          newSuggs.push({label: "Meilleures ventes", prompt: "Quels sont mes articles les plus vendus ce mois-ci ?"});
+          newSuggs.push({label: "Booster mes ventes", prompt: "Quelles actions puis-je mettre en place pour augmenter mes ventes ?", icon: <TrendingUp className="h-4 w-4" />});
+          newSuggs.push({label: "Meilleures ventes", prompt: "Quels sont mes articles les plus vendus ce mois-ci ?", icon: <TrendingUp className="h-4 w-4" />});
         }
         if (lower.includes('prix') || lower.includes('tarif')) {
-          newSuggs.push({label: "Fixer un bon prix", prompt: "Comment déterminer le prix de vente optimal pour un nouveau produit ?"});
-          newSuggs.push({label: "Analyse de la concurrence", prompt: "Quels sont les prix pratiqués par la concurrence pour des produits similaires ?"});
+          newSuggs.push({label: "Fixer un bon prix", prompt: "Comment déterminer le prix de vente optimal pour un nouveau produit ?", icon: <DollarSign className="h-4 w-4" />});
+          newSuggs.push({label: "Analyse de la concurrence", prompt: "Quels sont les prix pratiqués par la concurrence pour des produits similaires ?", icon: <DollarSign className="h-4 w-4" />});
         }
         if (lower.includes('whatsapp') || lower.includes('instagram') || lower.includes('marketing')) {
-          newSuggs.push({label: "Idées marketing", prompt: "Donne-moi 3 idées de promotions WhatsApp pour attirer plus de clients."});
-          newSuggs.push({label: "Créer une offre spéciale", prompt: "Comment créer une offre « 2 pour le prix d'1 » efficace ?"});
+          newSuggs.push({label: "Idées marketing", prompt: "Donne-moi 3 idées de promotions WhatsApp pour attirer plus de clients.", icon: <MessageSquare className="h-4 w-4" />});
+          newSuggs.push({label: "Créer une offre spéciale", prompt: "Comment créer une offre « 2 pour le prix d'1 » efficace ?", icon: <Sparkles className="h-4 w-4" />});
         }
         if (newSuggs.length === 0) {
           newSuggs = [
-            {label: "Stock à réapprovisionner", prompt: "Quels articles dois-je réapprovisionner cette semaine ?"},
-            {label: "Améliorer mes marges", prompt: "Comment améliorer ma marge globale ?"},
-            {label: "Meilleures ventes du mois", prompt: "Quels sont mes meilleures ventes du mois ?"}
+            {label: "Stock à réapprovisionner", prompt: "Quels articles dois-je réapprovisionner cette semaine ?", icon: <Package className="h-4 w-4" />},
+            {label: "Améliorer mes marges", prompt: "Comment améliorer ma marge globale ?", icon: <Sparkles className="h-4 w-4" />},
+            {label: "Meilleures ventes du mois", prompt: "Quels sont mes meilleures ventes du mois ?", icon: <TrendingUp className="h-4 w-4" />}
           ];
         }
         setSuggestions(newSuggs.slice(0, 6));
@@ -112,15 +118,6 @@ export default function AssistantPage() {
     if (input.trim()) handleSend(input);
   }
 
-  const handleClear = () => { setMessages([]); setSuggestions([]); };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim()) handleSend(input);
-  }
-
-  const handleClear = () => { setMessages([]); setSuggestions([]); };
-
   const formatTime = (date: Date) => date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
   return (
@@ -129,16 +126,15 @@ export default function AssistantPage() {
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link href="/stock" className="flex items-center space-x-3 p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-xl touch-manipulation">
+            <Link href="/stock" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
               <ArrowLeft className="h-6 w-6" />
-              <span className="hidden sm:inline font-medium text-gray-500 dark:text-gray-400">Retour</span>
             </Link>
 
-            <div className="flex items-center space-x-2 flex-1 justify-center">
+            <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}>
                 <Brain className="h-6 w-6 text-white" />
               </div>
-              <div className="hidden md:block text-left">
+              <div>
                 <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Expert Ma Boutique</h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Powered by GLM 4.5 Flash</p>
               </div>
@@ -152,22 +148,22 @@ export default function AssistantPage() {
             </div>
           </div>
         </div>
+      </header>
 
-        {/* Quick Actions Bar - Horizontal Scroll */}
-        <div className="px-4 pb-4 -mx-4 overflow-x-auto scrollbar-hide">
-          <div className="flex space-x-2 min-w-max pb-2">
-            {suggestions.map((sugg, i) => (
-              <button
-                key={i}
-                onClick={() => handleSuggestionClick(sugg.prompt)}
-                disabled={loading}
-                className="flex items-center space-x-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-400 dark:hover:bg-blue-400 active:bg-blue-100 dark:active:bg-blue-200 touch-manipulation transition-all disabled:opacity-50 flex-shrink-0"
-              >
-                <span className="text-lg">{sugg.icon}</span>
-                <span>{sugg.label}</span>
-              </button>
-            ))}
-          </div>
+      {/* Quick Actions Bar - Horizontal Scroll */}
+      <div className="px-4 pb-4 -mx-4 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center space-x-2 min-w-max pb-2">
+          {suggestions.map((sugg, i) => (
+            <button
+              key={i}
+              onClick={() => handleSuggestionClick(sugg.prompt)}
+              disabled={loading}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-400 dark:hover:bg-blue-400 active:bg-blue-100 dark:active:bg-blue-200 touch-manipulation transition-all disabled:opacity-50 flex-shrink-0"
+            >
+              <span className="text-lg">{sugg.icon}</span>
+              <span>{sugg.label}</span>
+            </button>
+          ))}
         </div>
       </header>
 
@@ -180,15 +176,13 @@ export default function AssistantPage() {
                 <Brain className="h-10 w-10 text-white" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Bonjour ! Je suis votre expert.</h2>
-              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-6">
-                Je connais votre stock, vos ventes et vos marges. Posez-moi n'importe quelle question business.
-              </p>
+              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-6">Je connais votre stock, vos ventes et vos marges. Posez-moi n'importe quelle question business.</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-md mx-auto">
                 {suggestions.slice(0, 3).map((sugg, i) => (
                   <button
                     key={i}
                     onClick={() => handleSuggestionClick(sugg.prompt)}
-                    className="p-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-left hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-400 dark:hover:bg-blue-400 touch-manipulation transition-all"
+                    className="p-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-left hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-400 dark:hover:bg-blue-400 touch-manipulation transition-all"
                   >
                     <p className="text-lg">{sugg.icon}</p>
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-600 mt-1">{sugg.label}</p>
@@ -245,7 +239,7 @@ export default function AssistantPage() {
               />
               <button
                 type="submit"
-                disabled={!input.trim() || loading}
+                disabled={loading || !input.trim()}
                 className="p-3 rounded-xl text-white dark:text-gray-100 touch-manipulation active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-transform"
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}
               >
