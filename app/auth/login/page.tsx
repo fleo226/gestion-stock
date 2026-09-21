@@ -3,12 +3,13 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { signIn } from 'next-auth/react';
 import { Eye, EyeOff, Mail, Lock, User, Package, TrendingUp, DollarSign, CheckCircle } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/';
+  const redirect = searchParams.get('redirect') || '/stock';
   const [isSignup, setIsSignup] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '', nom: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -21,24 +22,51 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const endpoint = isSignup ? '/api/auth/signup' : '/api/auth/signin';
-      const body = isSignup ? { ...formData } : { email: formData.email, password: formData.password };
-      
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      if (isSignup) {
+        // Signup still uses custom API route
+        const res = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
 
-      const data = await res.json();
+        const data = await res.json();
 
-      if (!res.ok) {
-        setError(data.error || 'Une erreur est survenue');
-        return;
+        if (!res.ok) {
+          setError(data.error || 'Une erreur est survenue');
+          return;
+        }
+
+        // Auto sign in after signup using NextAuth
+        const signInResult = await signIn('credentials', {
+          email: formData.email,
+          password: formData.password,
+          redirect: false,
+        });
+
+        if (signInResult?.error) {
+          setError('Compte créé mais erreur de connexion automatique');
+          return;
+        }
+
+        router.push(redirect);
+        router.refresh();
+      } else {
+        // Signin uses NextAuth
+        const result = await signIn('credentials', {
+          email: formData.email,
+          password: formData.password,
+          redirect: false,
+        });
+
+        if (result?.error) {
+          setError(result.error);
+          return;
+        }
+
+        router.push(redirect);
+        router.refresh();
       }
-
-      router.push(redirect);
-      router.refresh();
     } catch {
       setError('Erreur de connexion au serveur');
     } finally {
@@ -62,7 +90,7 @@ function LoginForm() {
         {error && (
           <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm animate-pop flex items-center space-x-2">
             <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/></svg>
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L10 10l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/></svg>
             </div>
             <span>{error}</span>
           </div>
@@ -155,7 +183,7 @@ function LoginForm() {
             onClick={() => { setIsSignup(!isSignup); setError(''); }}
             className="text-blue-600 font-semibold hover:underline ml-1"
           >
-            {isSignup ? 'Se connecter' : 'S\'inscrire'}
+            {isSignup ? 'Se connecter' : "S'inscrire"}
           </button>
         </p>
       </div>
