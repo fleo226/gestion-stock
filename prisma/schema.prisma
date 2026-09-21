@@ -1,6 +1,3 @@
-// Gestion de stock pour commerçants — base dédiée (aucun lien avec Faso Cap)
-// V2 : comptes utilisateurs — chaque commerçante voit uniquement son stock
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,105 +8,109 @@ datasource db {
   directUrl = env("DATABASE_URL_DIRECT")
 }
 
-// Le compte de la commerçante
 model User {
-  id                   String    @id @default(cuid())
-  email                String    @unique
-  nom                  String
-  passwordHash         String
-  couleur              String    @default("#2563eb") // couleur d'accent par défaut (profil)
-  creeLe               DateTime  @default(now())
-  articles             Article[]
-  categories           Categorie[]
-
-  // === BOUTIQUE PUBLIQUE ===
-  boutiqueActive       Boolean   @default(false)
-  boutiqueNom          String?   // Nom affiché en header public
-  boutiqueDescription  String?   // Description courte
-  boutiqueLogoUrl      String?   // Logo boutique (upload futur)
-  boutiqueSlug         String?   @unique // URL courte: /b/[slug]
-  boutiqueAccentColor  String    @default("#2563eb") // Couleur d'accent boutique (différent de profil)
-  boutiqueWhatsApp     String?   // Format: "22670123456" (sans +)
-
-  // Orange Money Config
-  orangeMoneyType      OrangeMoneyType @default(PARTICULIER)
-  orangeMoneyCodeMarchand String?  // 6 chiffres si MARCHAND
-  orangeMoneyNumero    String?     // Numéro tel si PARTICULIER (format: "22670123456")
-  orangeMoneyNomAffichage String?  // Nom affiché dans instructions: "Aminata Boutique"
+  id                      String          @id @default(cuid())
+  email                   String          @unique
+  nom                     String
+  passwordHash            String
+  couleur                 String          @default("#2563eb")
+  creeLe                  DateTime        @default(now())
+  boutiqueAccentColor     String          @default("#2563eb")
+  boutiqueActive          Boolean         @default(false)
+  boutiqueDescription     String?
+  boutiqueLogoUrl         String?
+  boutiqueNom             String?
+  boutiqueSlug            String?         @unique
+  boutiqueWhatsApp        String?
+  orangeMoneyCodeMarchand String?
+  orangeMoneyNomAffichage String?
+  orangeMoneyNumero       String?
+  orangeMoneyType         OrangeMoneyType @default(PARTICULIER)
+  articles                Article[]
+  categories              Categorie[]
+  conversations           Conversation[]
 }
 
-enum OrangeMoneyType {
-  MARCHAND
-  PARTICULIER
-}
-
-// Catégorie / Collection — appartient à UNE commerçante
 model Categorie {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nom       String     // ex: "Robes", "Pagnes", "Accessoires"
-  couleur   String     @default("#2563eb") // couleur pour l'affichage
-  ordre     Int        @default(0) // ordre d'affichage
-  creeLe    DateTime   @default(now())
-  articles  Article[]
+  id       String    @id @default(cuid())
+  userId   String
+  nom      String
+  couleur  String    @default("#2563eb")
+  ordre    Int       @default(0)
+  creeLe   DateTime  @default(now())
+  articles Article[]
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
-// Un article (vêtement, paire, mètre, etc.) — appartient à UNE commerçante
 model Article {
-  id         String     @id @default(cuid())
-  userId     String
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categorieId String?
-  categorie  Categorie? @relation(fields: [categorieId], references: [id], onDelete: SetNull)
-  nom        String     // nom affiché, ex: "Robe fleurie"
-  taille     String?    // ex: M, XL, 42
-  couleur    String?    // ex: bleu, rouge
-  prixAchat  Int        // en FCFA
-  prixVente  Int        // en FCFA
-  quantite   Int        @default(0) // stock actuel (recalculé à partir des mouvements)
-  unite      String     @default("pièce") // pièce, paire, mètre, kg...
-  photoUrl   String?    // URL de la photo dans Supabase Storage
-  creeLe     DateTime   @default(now())
-  mouvements Mouvement[]
-  commandeLignes CommandeLigne[] // Relation inverse pour CommandeLigne
+  id             String          @id @default(cuid())
+  nom            String
+  taille         String?
+  couleur        String?
+  prixAchat      Int
+  prixVente      Int
+  quantite       Int             @default(0)
+  unite          String          @default("pièce")
+  photoUrl       String?
+  creeLe         DateTime        @default(now())
+  userId         String
+  categorieId    String?
+  categorie      Categorie?      @relation(fields: [categorieId], references: [id])
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commandeLignes CommandeLigne[]
+  mouvements     Mouvement[]
 
   @@index([userId])
   @@index([categorieId])
 }
 
-// Un mouvement : une entrée ou une sortie (vente) d'un article
 model Mouvement {
   id           String   @id @default(cuid())
   articleId    String
-  article      Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  type         String   // "ENTREE" ou "SORTIE"
-  quantite     Int      // >= 1 ; une sortie ne peut pas dépasser le stock
-  prixUnitaire Int      // prix appliqué (achat pour entrée, vente pour sortie)
+  type         String
+  quantite     Int
+  prixUnitaire Int
   date         DateTime @default(now())
-  note         String?  // ex: "commande 15 pièces", "client Aminata"
+  note         String?
+  article      Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
 }
 
-// === COMMANDES BOUTIQUE PUBLIQUE ===
 model Commande {
-  id              String         @id @default(cuid())
-  vendeurId       String
-  clientNom       String
-  clientTelephone String?
-  clientAdresse   String?
-  clientNote      String?
-  total           Int            // FCFA
-  statut          StatutCommande @default(EN_ATTENTE_PAIEMENT)
-  referencePaiement String?      // ID transaction Orange Money (fourni par client)
-  creeLe          DateTime       @default(now())
-  valideeLe       DateTime?
-  lignes          CommandeLigne[]
+  id                String          @id @default(cuid())
+  vendeurId         String
+  clientNom         String
+  clientTelephone   String?
+  clientAdresse     String?
+  clientNote        String?
+  total             Int
+  statut            StatutCommande  @default(EN_ATTENTE_PAIEMENT)
+  referencePaiement String?
+  creeLe            DateTime        @default(now())
+  valideeLe         DateTime?
+  lignes            CommandeLigne[]
 
   @@index([vendeurId])
   @@index([statut])
   @@index([creeLe])
+}
+
+model CommandeLigne {
+  id           String   @id @default(cuid())
+  commandeId   String
+  articleId    String
+  quantite     Int
+  prixUnitaire Int
+  article      Article  @relation(fields: [articleId], references: [id])
+  commande     Commande @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+
+  @@index([commandeId])
+}
+
+enum OrangeMoneyType {
+  MARCHAND
+  PARTICULIER
 }
 
 enum StatutCommande {
@@ -119,13 +120,26 @@ enum StatutCommande {
   ANNULEE
 }
 
-model CommandeLigne {
-  id        String   @id @default(cuid())
-  commandeId String
-  commande  Commande @relation(fields: [commandeId], references: [id], onDelete: Cascade)
-  articleId String
-  article   Article  @relation(fields: [articleId], references: [id])
-  quantite  Int
-  prixUnitaire Int   // Prix au moment de la commande (snapshot)
-  @@index([commandeId])
+model Conversation {
+  id       String    @id @default(cuid())
+  userId   String
+  titre    String    @default("Nouvelle discussion")
+  creeLe   DateTime  @default(now())
+  majLe    DateTime  @updatedAt
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId])
+  @@index([majLe])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  role           String // "user" ou "assistant"
+  contenu        String       @db.Text
+  creeLe         DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
 }
