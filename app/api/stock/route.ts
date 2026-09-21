@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'create': {
-        const result = await creerArticle(data, userId);
+        const result = await creerArticle(data);
         if (result.error) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       case 'update': {
         const { id, ...input } = data;
         if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 });
-        const result = await modifierArticle(id, input, userId);
+        const result = await modifierArticle(id, input);
         if (result.error) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       case 'delete': {
         const { id } = data;
         if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 });
-        const result = await supprimerArticle(id, userId);
+        const result = await supprimerArticle(id);
         if (result.error) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       case 'entree': {
         const { articleId, quantite, prixUnitaire, note } = data;
         if (!articleId || !quantite) return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 });
-        const result = await entreeArticle(articleId, quantite, prixUnitaire, note, userId);
+        const result = await entreeArticle(articleId, quantite, prixUnitaire, note);
         if (result.error) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       case 'sortie': {
         const { articleId, quantite, prixUnitaire, note } = data;
         if (!articleId || !quantite) return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 });
-        const result = await sortieArticle(articleId, quantite, prixUnitaire, note, userId);
+        const result = await sortieArticle(articleId, quantite, prixUnitaire, note);
         if (result.error) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
