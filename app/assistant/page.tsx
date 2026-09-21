@@ -65,11 +65,11 @@ export default function AssistantPage() {
       const data = await res.json();
 
       if (data.success) {
-        const assistantMsg = { id: `assistant-${Date.now()}`, role: 'assistant' as const, content: data.response, timestamp: new Date() };
+        const assistantMsg = { id: `assistant-${Date.now()}`, role: 'assistant' as const, content: data.reponse, timestamp: new Date() };
         setMessages(prev => [...prev, assistantMsg]);
 
         // Update suggestions based on response
-        const lower = data.response.toLowerCase();
+        const lower = data.reponse.toLowerCase();
         let newSuggs: Array<{label: string; prompt: string; icon: React.ReactNode}> = [];
         if (lower.includes('marge') || lower.includes('profit') || lower.includes('bénéfice')) {
           newSuggs.push({label: "Améliorer ma marge", prompt: "Comment puis-je augmenter ma marge sur cet article ?", icon: <Sparkles className="h-4 w-4" />});
@@ -135,8 +135,8 @@ export default function AssistantPage() {
                 <Brain className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Expert Ma Boutique</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Powered by GLM 4.5 Flash</p>
+                <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Agent de ma Boutique</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Conseiller stock & ventes</p>
               </div>
             </div>
 
