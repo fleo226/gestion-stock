@@ -20,10 +20,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });
     }
 
-    // Récupérer les données de la boutique
+    // Récupérer les données de la boutique (limité pour performance)
     const articles = await db.article.findMany({
       where: { userId },
-      include: { mouvements: true },
+      include: {
+        mouvements: {
+          take: 20,
+          orderBy: { date: 'desc' },
+        },
+      },
+      take: 20,
+      orderBy: { creeLe: 'desc' },
     });
 
     // Calculer les stats pour l'IA
@@ -73,8 +80,8 @@ const { callNVIDIA, buildContextPrompt } = await import('@/lib/ai-assistant');
     );
 
 const reponse = await callNVIDIA(messages, {
-  temperature: 1.0,
-  maxTokens: 800,
+  temperature: 0.6,
+  maxTokens: 300,
 });
 
     return NextResponse.json({
