@@ -1,4 +1,4 @@
-// Variables d'environnement pour NVIDIA NIM
-export const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '';
-export const NVIDIA_BASE_URL = process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1';
-export const NVIDIA_MODEL = process.env.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b';
+// Variables d'environnement pour GLM 4.5 Flash (Z.ai)
+export const GLM_API_KEY = process.env.GLM_API_KEY || '';
+export const GLM_BASE_URL = process.env.GLM_BASE_URL || 'https://api.z.ai/api/paas/v4';
+export const GLM_MODEL = process.env.GLM_MODEL || 'glm-4.5-flash';

@@ -2,31 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { cookies } from 'next/headers';
 
-// Fonction de nettoyage de la réponse IA
-function cleanAIResponse(text: string): string {
-  if (!text) return '';
-
-  // 1. Retirer le raisonnement (blocs complets d'abord, puis fuites)
-  let cleaned = text
-    .replace(/<\/?think>/gi, '')
-    .replace(/<think>[\s\S]*?<\/think>/gi, '')
-    .replace(/Here'?s a thinking process:[\s\S]*?(?=\n\n|$)/gi, '')
-    .replace(/\*{0,2}Analyze User Input:?\*{0,2}[\s\S]*?(?=\n\n|$)/gi, '')
-    .replace(/\*{0,2}Identify Key Issues:?\*{0,2}[\s\S]*?(?=\n\n|$)/gi, '')
-    .replace(/The user is asking[\s\S]*/gi, '')
-    .replace(/Looking at the context[\s\S]*/gi, '')
-    .replace(/The user wants[\s\S]*/gi, '');
-
-  // 2. Répétitions — \p{L} + flag u pour supporter les accents français
-  cleaned = cleaned.replace(/(\p{L}+)(\s+\1){2,}/giu, '$1');
-  cleaned = cleaned.replace(/(\p{L}{3,})\1{2,}/giu, '$1');
-
-  // 3. Espaces multiples et lignes vides excessives
-  cleaned = cleaned.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n');
-
-  return cleaned.trim();
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { question, conversationId: existingConversationId } = await request.json().catch(() => ({}));
@@ -97,19 +72,17 @@ export async function POST(request: NextRequest) {
       totalVendu,
     };
 
-// Appel NVIDIA Nemotron 3.5 Lightning
-const { callNVIDIA, buildContextPrompt } = await import('@/lib/ai-assistant');
+    // Appel GLM 4.5 Flash
+    const { callGLM, buildContextPrompt } = await import('@/lib/ai-assistant');
     const messages = buildContextPrompt(
       { articles: articlesContext, stats, userName: user.nom },
       question.trim()
     );
 
-const reponseBrute = await callNVIDIA(messages, {
-  temperature: 0.6,
-  maxTokens: 1024,
-});
-
-const reponse = cleanAIResponse(reponseBrute) || "Désolée, je n'ai pas bien compris. Pouvez-vous reformuler votre question ?";
+    const reponse = await callGLM(messages, {
+      temperature: 0.7,
+      maxTokens: 800,
+    });
 
     // === SAUVEGARDE MÉMOIRE (ne doit jamais faire échouer le chat) ===
     let conversationId = existingConversationId;
@@ -154,14 +127,14 @@ const reponse = cleanAIResponse(reponseBrute) || "Désolée, je n'ai pas bien co
   } catch (error: any) {
     console.error('Erreur assistant IA:', error);
 
-    if (error.message?.includes('NVIDIA_API_KEY')) {
+    if (error.message?.includes('GLM_API_KEY')) {
       return NextResponse.json(
         { error: 'Assistant IA non configuré - clé API manquante' },
         { status: 503 }
       );
     }
 
-    if (error.message?.includes('NVIDIA API error')) {
+    if (error.message?.includes('GLM API error')) {
       return NextResponse.json(
         { error: 'Erreur du service IA - veuillez réessayer' },
         { status: 502 }
