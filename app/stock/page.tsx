@@ -7,7 +7,7 @@ import { Plus, LogOut, Menu, X, TrendingUp, Package, DollarSign, ArrowUpRight, A
 import { formatPhone } from '@/lib/format';
 import { Button } from '@/components/ui/Button';
 import { Badge as BadgeComponent } from '@/components/ui/Badge';
-import { useSession } from '@/lib/auth';
+import { useSession } from '@/lib/auth-context';
 
 type Categorie = { id: string; nom: string; couleur: string };
 
