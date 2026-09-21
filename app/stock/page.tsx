@@ -7,7 +7,7 @@ import { Plus, LogOut, Menu, X, TrendingUp, Package, DollarSign, ArrowUpRight, A
 import { formatPhone } from '@/lib/format';
 import { Button } from '@/components/ui/Button';
 import { Badge as BadgeComponent } from '@/components/ui/Badge';
-import { cssVars } from '@/lib/css';
+import { useSession } from '@/lib/auth';
 
 type Categorie = { id: string; nom: string; couleur: string };
 
@@ -57,7 +57,7 @@ type VendeurInfo = {
 };
 
 export default function StockPage() {
-  const router = useNextRouter();
+  const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user as (VendeurInfo | null);
   const [activeTab, setActiveTab] = useState<'stock' | 'commandes'>('stock');
@@ -99,7 +99,6 @@ export default function StockPage() {
 
   useEffect(() => {
     fetchData();
-    fetchUser();
     if (activeTab === 'commandes') fetchCommandes();
   }, [activeTab]);
 
@@ -169,7 +168,7 @@ export default function StockPage() {
       String(a.prixVente),
       String(a.valeurStock),
     ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `\"${c.replace(/\"/g, '\"\"')}\"`).join(',')).join('\n');
+    const csv = [headers, ...rows].map(r => r.map(c => `\"${c.replace(/\"/g, '""')}\"`).join(',')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -431,7 +430,7 @@ interface CommandesTabProps {
 }
 
 function CommandesTab({ commandes, loading, onValidate, validatingId, accentColor, formatPrice, formatDate }: CommandesTabProps) {
-  const router = useNextRouter();
+  const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user as VendeurInfo | null;
   const vendeur = user;
