@@ -65,17 +65,17 @@ export async function POST(request: NextRequest) {
       totalVendu,
     };
 
-    // Appel GLM 4.5 Flash
-    const { callGLM, buildContextPrompt } = await import('@/lib/ai-assistant');
+// Appel NVIDIA Nemotron 3.5 Lightning
+const { callNVIDIA, buildContextPrompt } = await import('@/lib/ai-assistant');
     const messages = buildContextPrompt(
       { articles: articlesContext, stats, userName: user.nom },
       question.trim()
     );
 
-    const reponse = await callGLM(messages, {
-      temperature: 0.7,
-      maxTokens: 800,
-    });
+const reponse = await callNVIDIA(messages, {
+  temperature: 1.0,
+  maxTokens: 800,
+});
 
     return NextResponse.json({
       success: true,
@@ -86,14 +86,14 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Erreur assistant IA:', error);
 
-    if (error.message?.includes('GLM_API_KEY')) {
+    if (error.message?.includes('NVIDIA_API_KEY')) {
       return NextResponse.json(
         { error: 'Assistant IA non configuré - clé API manquante' },
         { status: 503 }
       );
     }
 
-    if (error.message?.includes('GLM API error')) {
+    if (error.message?.includes('NVIDIA API error')) {
       return NextResponse.json(
         { error: 'Erreur du service IA - veuillez réessayer' },
         { status: 502 }

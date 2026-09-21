@@ -1,4 +1,4 @@
-import { GLM_API_KEY, GLM_BASE_URL, GLM_MODEL } from './env';
+import { NVIDIA_API_KEY, NVIDIA_BASE_URL, NVIDIA_MODEL } from './env';
 
 // Type pour les messages de conversation
 export type ChatMessage = {
@@ -6,40 +6,40 @@ export type ChatMessage = {
   content: string;
 };
 
-// Configuration GLM
-const GLM_CONFIG = {
-  apiKey: GLM_API_KEY,
-  baseUrl: GLM_BASE_URL,
-  model: GLM_MODEL,
+// Configuration NVIDIA
+const NVIDIA_CONFIG = {
+  apiKey: NVIDIA_API_KEY,
+  baseUrl: NVIDIA_BASE_URL,
+  model: NVIDIA_MODEL,
 } as const;
 
 // Validation de la configuration
-if (!GLM_CONFIG.apiKey || !GLM_CONFIG.baseUrl || !GLM_CONFIG.model) {
-  console.warn('GLM configuration incomplete - AI features will be disabled');
+if (!NVIDIA_CONFIG.apiKey || !NVIDIA_CONFIG.baseUrl || !NVIDIA_CONFIG.model) {
+  console.warn('NVIDIA configuration incomplete - AI features will be disabled');
 }
 
 /**
- * Appel à l'API GLM 4.5 Flash
+ * Appel à l'API NVIDIA Nemotron 3.5 Lightning
  */
-export async function callGLM(messages: ChatMessage[], options?: {
+export async function callNVIDIA(messages: ChatMessage[], options?: {
   temperature?: number;
   maxTokens?: number;
   stream?: boolean;
 }): Promise<string> {
-  if (!GLM_CONFIG.apiKey) {
-    throw new Error('GLM_API_KEY non configurée');
+  if (!NVIDIA_CONFIG.apiKey) {
+    throw new Error('NVIDIA_API_KEY non configurée');
   }
 
-  const response = await fetch(`${GLM_CONFIG.baseUrl}/chat/completions`, {
+  const response = await fetch(`${NVIDIA_CONFIG.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GLM_CONFIG.apiKey}`,
+      'Authorization': `Bearer ${NVIDIA_CONFIG.apiKey}`,
     },
     body: JSON.stringify({
-      model: GLM_CONFIG.model,
+      model: NVIDIA_CONFIG.model,
       messages,
-      temperature: options?.temperature ?? 0.7,
+      temperature: options?.temperature ?? 1.0,
       max_tokens: options?.maxTokens ?? 1000,
       stream: options?.stream ?? false,
     }),
@@ -47,7 +47,7 @@ export async function callGLM(messages: ChatMessage[], options?: {
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`GLM API error: ${response.status} - ${error}`);
+    throw new Error(`NVIDIA API error: ${response.status} - ${error}`);
   }
 
   const data = await response.json();
