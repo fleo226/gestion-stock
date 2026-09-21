@@ -122,8 +122,8 @@ export default function AIAssistant() {
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-semibold text-gray-900">Assistant IA</p>
-                <p className="text-xs text-gray-500">Powered by GLM 4.5 Flash</p>
+                <p className="font-semibold text-gray-900">Agent de ma Boutique</p>
+                <p className="text-xs text-gray-500">Conseiller stock & ventes</p>
               </div>
             </div>
             <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white rounded-xl touch-manipulation">
