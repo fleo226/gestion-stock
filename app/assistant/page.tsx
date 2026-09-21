@@ -199,7 +199,7 @@ export default function AssistantPage() {
                     : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-2xl rounded-bl-md shadow-sm border border-gray-300 dark:border-gray-600 flex items-start space-x-3'
                   }`}>
                     {msg.role === 'assistant' && (
-                      <div className="w-8 h-8 flex-shrink-0 mt-0.5 flex items-center justify-center rounded-lg" style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}>
+                      <div className="w-8 h-8 flex-shrink-0 mt-0.5 flex items-center justify-center rounded-lg" style={{ background: 'linear_grad(135deg, #7c3aed, #2563eb)' }}>
                         <Brain className="h-4 w-4 text-white" />
                       </div>
                     )}
@@ -233,7 +233,6 @@ export default function AssistantPage() {
                 placeholder={loading ? "Réflexion en cours..." : "Posez votre question..."}
                 className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
                 rows={1}
-                maxRows={5}
                 disabled={loading}
                 style={{ minHeight: '48px', fontFamily: 'inherit' }}
               />
