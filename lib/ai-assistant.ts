@@ -42,6 +42,10 @@ export async function callNVIDIA(messages: ChatMessage[], options?: {
       temperature: options?.temperature ?? 1.0,
       max_tokens: options?.maxTokens ?? 1000,
       stream: options?.stream ?? false,
+      // Désactive le raisonnement visible pour ce modèle
+      chat_template_kwargs: {
+        enable_thinking: false,
+      },
     }),
   });
 

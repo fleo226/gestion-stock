@@ -81,7 +81,7 @@ const { callNVIDIA, buildContextPrompt } = await import('@/lib/ai-assistant');
 
 const reponse = await callNVIDIA(messages, {
   temperature: 0.6,
-  maxTokens: 300,
+  maxTokens: 1024, // Assez de tokens pour une réponse complète
 });
 
     return NextResponse.json({
