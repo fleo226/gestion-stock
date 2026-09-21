@@ -150,23 +150,6 @@ export default function AssistantPage() {
         </div>
       </header>
 
-      {/* Quick Actions Bar - Horizontal Scroll */}
-      <div className="px-4 pb-4 -mx-4 overflow-x-auto scrollbar-hide">
-        <div className="flex items-center space-x-2 min-w-max pb-2">
-          {suggestions.map((sugg, i) => (
-            <button
-              key={i}
-              onClick={() => handleSuggestionClick(sugg.prompt)}
-              disabled={loading}
-              className="flex items-center space-x-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-400 dark:hover:bg-blue-400 active:bg-blue-100 dark:active:bg-blue-200 touch-manipulation transition-all disabled:opacity-50 flex-shrink-0"
-            >
-              <span className="text-lg">{sugg.icon}</span>
-              <span>{sugg.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Chat Area */}
       <main className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 py-4">
         <div className="flex-1 overflow-y-auto space-y-6 pb-4" style={{ paddingBottom: '120px' }}>
@@ -217,6 +200,23 @@ export default function AssistantPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {loading && (
+            <div className="flex justify-start animate-slide-up">
+              <div className="max-w-[85%] bg-white dark:bg-gray-800 rounded-2xl rounded-bl-md shadow-sm border border-gray-300 dark:border-gray-600 flex items-start space-x-3 px-4 py-3">
+                <div className="w-8 h-8 flex-shrink-0 mt-0.5 flex items-center justify-center rounded-lg" style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}>
+                  <Brain className="h-4 w-4 text-white" />
+                </div>
+                <div className="flex items-center gap-2 pt-1.5">
+                  <span className="text-base text-gray-600 dark:text-gray-300 font-medium">Réfléchit</span>
+                  <span className="flex gap-1">
+                    <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </span>
+                </div>
+              </div>
             </div>
           )}
           <div ref={messagesEndRef} />
