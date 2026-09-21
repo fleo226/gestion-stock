@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, Send, Loader2, Mic, X, Menu, MessageSquare, Brain, Zap, Shield } from 'lucide-react';
+import { ArrowLeft, Sparkles, Send, Loader2, Mic, X, Menu, MessageSquare, Brain, Zap, Shield, Package, TrendingUp, DollarSign } from 'lucide-react';
 
 type Message = {
   id: string;
@@ -79,7 +79,7 @@ export default function AssistantPage() {
           newSuggs.push({label: "Articles à réapprovisionner", prompt: "Quels articles dois-je commander cette semaine ?", icon: <Package className="h-4 w-4" />});
           newSuggs.push({label: "Prévision des ventes", prompt: "Quelle quantité devrais-je prévoir pour le mois prochain ?", icon: <Package className="h-4 w-4" />});
         }
-        if (lower.includes('vente') || lower.includes('ca') || lower.includes('chiffre d\'affaires')) {
+        if (lower.includes('vente') || lower.includes('ca') || lower.includes("chiffre d'affaires")) {
           newSuggs.push({label: "Booster mes ventes", prompt: "Quelles actions puis-je mettre en place pour augmenter mes ventes ?", icon: <TrendingUp className="h-4 w-4" />});
           newSuggs.push({label: "Meilleures ventes", prompt: "Quels sont mes articles les plus vendus ce mois-ci ?", icon: <TrendingUp className="h-4 w-4" />});
         }
@@ -165,7 +165,7 @@ export default function AssistantPage() {
             </button>
           ))}
         </div>
-      </header>
+      </div>
 
       {/* Chat Area */}
       <main className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 py-4">
@@ -218,8 +218,8 @@ export default function AssistantPage() {
                 </div>
               ))}
             </div>
-            <div ref={messagesEndRef} />
-          </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input Area - Fixed Bottom */}
