@@ -7,7 +7,6 @@ import { Plus, LogOut, Menu, X, TrendingUp, Package, DollarSign, ArrowUpRight, A
 import { formatPhone } from '@/lib/format';
 import { Button } from '@/components/ui/Button';
 import { Badge as BadgeComponent } from '@/components/ui/Badge';
-import { useSession } from '@/lib/auth-context';
 
 type Categorie = { id: string; nom: string; couleur: string };
 
@@ -58,8 +57,15 @@ type VendeurInfo = {
 
 export default function StockPage() {
   const router = useRouter();
-  const { session } = useSession();
-  const user = session?.user as (VendeurInfo | null);
+  const [user, setUser] = useState<VendeurInfo | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => setUser(d.user))
+      .catch(() => setUser(null));
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'stock' | 'commandes'>('stock');
   const [articles, setArticles] = useState<Article[]>([]);
   const [commandes, setCommandes] = useState<CommandeWeb[]>([]);
@@ -431,8 +437,15 @@ interface CommandesTabProps {
 
 function CommandesTab({ commandes, loading, onValidate, validatingId, accentColor, formatPrice, formatDate }: CommandesTabProps) {
   const router = useRouter();
-  const { session } = useSession();
-  const user = session?.user as VendeurInfo | null;
+  const [user, setUser] = useState<VendeurInfo | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => setUser(d.user))
+      .catch(() => setUser(null));
+  }, []);
+
   const vendeur = user;
 
   const getStatusConfig = (statut: CommandeWeb['statut']) => {

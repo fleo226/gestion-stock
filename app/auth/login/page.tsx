@@ -3,7 +3,6 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
 import { Eye, EyeOff, Mail, Lock, User, Package, TrendingUp, DollarSign, CheckCircle } from 'lucide-react';
 
 function LoginForm() {
@@ -23,7 +22,6 @@ function LoginForm() {
 
     try {
       if (isSignup) {
-        // Signup still uses custom API route
         const res = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -37,30 +35,33 @@ function LoginForm() {
           return;
         }
 
-        // Auto sign in after signup using NextAuth
-        const signInResult = await signIn('credentials', {
-          email: formData.email,
-          password: formData.password,
-          redirect: false,
+        // Auto sign in after signup using credentials
+        const signInRes = await fetch('/api/auth/signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, password: formData.password }),
         });
 
-        if (signInResult?.error) {
-          setError('Compte créé mais erreur de connexion automatique');
+        const signInData = await signInRes.json();
+
+        if (!signInRes.ok) {
+          setError('Compte créé mais erreur de connexion automatique: ' + (signInData.error || 'Erreur inconnue'));
           return;
         }
 
         router.push(redirect);
         router.refresh();
       } else {
-        // Signin uses NextAuth
-        const result = await signIn('credentials', {
-          email: formData.email,
-          password: formData.password,
-          redirect: false,
+        const res = await fetch('/api/auth/signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, password: formData.password }),
         });
 
-        if (result?.error) {
-          setError(result.error);
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || 'Une erreur est survenue');
           return;
         }
 
@@ -90,7 +91,7 @@ function LoginForm() {
         {error && (
           <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm animate-pop flex items-center space-x-2">
             <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L10 10l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/></svg>
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/></svg>
             </div>
             <span>{error}</span>
           </div>
