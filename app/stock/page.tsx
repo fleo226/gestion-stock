@@ -58,7 +58,7 @@ type VendeurInfo = {
 
 export default function StockPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { session } = useSession();
   const user = session?.user as (VendeurInfo | null);
   const [activeTab, setActiveTab] = useState<'stock' | 'commandes'>('stock');
   const [articles, setArticles] = useState<Article[]>([]);
@@ -431,7 +431,7 @@ interface CommandesTabProps {
 
 function CommandesTab({ commandes, loading, onValidate, validatingId, accentColor, formatPrice, formatDate }: CommandesTabProps) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { session } = useSession();
   const user = session?.user as VendeurInfo | null;
   const vendeur = user;
 
@@ -495,10 +495,10 @@ function CommandesTab({ commandes, loading, onValidate, validatingId, accentColo
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium text-gray-900 dark:text-gray-100">#{commande.id.slice(0, 8).toUpperCase()}</h3>
-                      <Badge variant={status.color === 'green' ? 'success' : status.color === 'orange' ? 'warning' : status.color === 'blue' ? 'info' : 'neutral'} dot className={status.bg}>
+                      <BadgeComponent variant={status.color === 'green' ? 'success' : status.color === 'orange' ? 'warning' : status.color === 'blue' ? 'info' : 'neutral'} dot className={status.bg}>
                         <StatusIcon className="h-3.5 w-3.5" />
                         {status.label}
-                      </Badge>
+                      </BadgeComponent>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{formatDate(commande.creeLe)}</p>
                   </div>
