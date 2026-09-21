@@ -2,9 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { cookies } from 'next/headers';
 
+// Fonction de nettoyage de la réponse IA
+function cleanAIResponse(text: string): string {
+  if (!text) return '';
+
+  // 1. Retirer le raisonnement (blocs complets d'abord, puis fuites)
+  let cleaned = text
+    .replace(/<\/?think>/gi, '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/Here'?s a thinking process:[\s\S]*?(?=\n\n|$)/gi, '')
+    .replace(/\*{0,2}Analyze User Input:?\*{0,2}[\s\S]*?(?=\n\n|$)/gi, '')
+    .replace(/\*{0,2}Identify Key Issues:?\*{0,2}[\s\S]*?(?=\n\n|$)/gi, '')
+    .replace(/The user is asking[\s\S]*/gi, '')
+    .replace(/Looking at the context[\s\S]*/gi, '')
+    .replace(/The user wants[\s\S]*/gi, '');
+
+  // 2. Répétitions — \p{L} + flag u pour supporter les accents français
+  cleaned = cleaned.replace(/(\p{L}+)(\s+\1){2,}/giu, '$1');
+  cleaned = cleaned.replace(/(\p{L}{3,})\1{2,}/giu, '$1');
+
+  // 3. Espaces multiples et lignes vides excessives
+  cleaned = cleaned.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n');
+
+  return cleaned.trim();
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { question } = await request.json();
+    const { question, conversationId: existingConversationId } = await request.json().catch(() => ({}));
     if (!question?.trim()) {
       return NextResponse.json({ error: 'Question requise' }, { status: 400 });
     }
@@ -79,14 +104,50 @@ const { callNVIDIA, buildContextPrompt } = await import('@/lib/ai-assistant');
       question.trim()
     );
 
-const reponse = await callNVIDIA(messages, {
+const reponseBrute = await callNVIDIA(messages, {
   temperature: 0.6,
-  maxTokens: 1024, // Assez de tokens pour une réponse complète
+  maxTokens: 1024,
 });
+
+const reponse = cleanAIResponse(reponseBrute) || "Désolée, je n'ai pas bien compris. Pouvez-vous reformuler votre question ?";
+
+    // === SAUVEGARDE MÉMOIRE (ne doit jamais faire échouer le chat) ===
+    let conversationId = existingConversationId;
+    try {
+      if (conversationId) {
+        // Vérifier que la conversation appartient bien à cet utilisateur
+        const conv = await db.conversation.findFirst({
+          where: { id: conversationId, userId: user.id },
+        });
+        if (!conv) conversationId = undefined; // id invalide ou d'autrui → nouvelle conv
+      }
+      if (!conversationId) {
+        const titre = question.trim().slice(0, 60) + (question.length > 60 ? '...' : '');
+        const conv = await db.conversation.create({
+          data: { userId: user.id, titre }
+        });
+        conversationId = conv.id;
+      } else {
+        await db.conversation.update({
+          where: { id: conversationId },
+          data: { majLe: new Date() }
+        });
+      }
+      await db.message.create({
+        data: { conversationId, role: 'user', contenu: question.trim() }
+      });
+      await db.message.create({
+        data: { conversationId, role: 'assistant', contenu: reponse }
+      });
+    } catch (saveError) {
+      console.error('Erreur sauvegarde mémoire (chat conservé):', saveError);
+      conversationId = undefined;
+    }
 
     return NextResponse.json({
       success: true,
       reponse,
+      conversationId,
       context: { stats },
     });
 
