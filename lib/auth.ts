@@ -1,69 +1,74 @@
-"use client";
+import NextAuth from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { db } from "@/lib/db";
+import bcrypt from "bcryptjs";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  providers: [
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Mot de passe", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
 
-type User = {
-  id: string;
-  email: string;
-  nom: string;
-  couleur: string;
-  boutiqueActive?: boolean;
-  boutiqueNom?: string;
-  boutiqueDescription?: string;
-  boutiqueLogoUrl?: string;
-  boutiqueSlug?: string;
-  boutiqueAccentColor?: string;
-  boutiqueWhatsApp?: string;
-  whatsapp?: string;
-};
+        const user = await db.user.findUnique({
+          where: { email: credentials.email as string },
+        });
 
-type Session = {
-  user: User | null;
-};
+        if (!user) {
+          return null;
+        }
 
-type AuthContextType = {
-  session: Session | null;
-  loading: boolean;
-  refresh: () => Promise<void>;
-};
+        const isValid = await bcrypt.compare(
+          credentials.password as string,
+          user.passwordHash
+        );
 
-const AuthContext = createContext<AuthContextType | null>(null);
+        if (!isValid) {
+          return null;
+        }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchSession = async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setSession({ user: data.user });
-      } else {
-        setSession({ user: null });
+        return {
+          id: user.id,
+          email: user.email,
+          nom: user.nom,
+          couleur: user.couleur,
+        };
+      },
+    }),
+  ],
+  session: {
+    strategy: "jwt",
+    maxAge: 60 * 60 * 24 * 30, // 30 jours
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.nom = user.nom;
+        token.couleur = user.couleur;
       }
-    } catch {
-      setSession({ user: null });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSession();
-  }, []);
-
-  return (
-    <AuthContext.Provider value={{ session, loading, refresh: fetchSession }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useSession() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useSession must be used within an AuthProvider");
-  }
-  return context;
-}
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user = {
+          ...session.user,
+          id: token.id as string,
+          nom: token.nom as string,
+          couleur: token.couleur as string,
+        };
+      }
+      return session;
+    },
+  },
+  pages: {
+    signIn: "/auth/login",
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+});
