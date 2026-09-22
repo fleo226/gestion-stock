@@ -186,7 +186,11 @@ export default function AssistantPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map((msg, i) => (
+              {messages.map((msg, i) => {
+              if (msg.role === 'assistant' && msg.streaming && !msg.content) {
+                return null;
+              }
+              return (
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}>
                   <div className={`max-w-[85%] ${msg.role === 'user'
                     ? 'bg-blue-600 text-white rounded-2xl rounded-br-md'
@@ -210,10 +214,11 @@ export default function AssistantPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           )}
-          {loading && (
+          {loading && !messages.some(m => m.role === 'assistant' && m.streaming && m.content.length > 0) && (
             <div className="flex justify-start animate-slide-up">
               <div className="max-w-[85%] bg-white dark:bg-gray-800 rounded-2xl rounded-bl-md shadow-sm border border-gray-300 dark:border-gray-600 flex items-start space-x-3 px-4 py-3">
                 <div className="w-8 h-8 flex-shrink-0 mt-0.5 flex items-center justify-center rounded-lg" style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}>
