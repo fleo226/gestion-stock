@@ -72,58 +72,106 @@ export async function POST(request: NextRequest) {
       totalVendu,
     };
 
-    // Appel GLM 4.5 Flash
-    const { callGLM, buildContextPrompt } = await import('@/lib/ai-assistant');
+    // === CRÉER LA CONVERSATION AVANT LE STREAM ===
+    let conversationId = existingConversationId;
+    if (conversationId) {
+      const conv = await db.conversation.findFirst({
+        where: { id: conversationId, userId: user.id },
+      });
+      if (!conv) conversationId = undefined;
+    }
+    if (!conversationId) {
+      const titre = question.trim().slice(0, 60) + (question.length > 60 ? '...' : '');
+      const conv = await db.conversation.create({
+        data: { userId: user.id, titre },
+      });
+      conversationId = conv.id;
+    } else {
+      await db.conversation.update({
+        where: { id: conversationId },
+        data: { majLe: new Date() },
+      });
+    }
+
+    // === SAUVEGARDER LE MESSAGE USER AVANT LE STREAM ===
+    await db.message.create({
+      data: { conversationId, role: 'user', contenu: question.trim() },
+    });
+
+    // === LANCER LE STREAM SSE ===
+    const { callGLMStream, buildContextPrompt } = await import('@/lib/ai-assistant');
     const messages = buildContextPrompt(
       { articles: articlesContext, stats, userName: user.nom },
       question.trim()
     );
 
-    const reponse = await callGLM(messages, {
-      temperature: 0.7,
-      maxTokens: 800,
+    const encoder = new TextEncoder();
+    const abortController = new AbortController();
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        const safeEnqueue = (data: string): boolean => {
+          try {
+            controller.enqueue(encoder.encode(data));
+            return true;
+          } catch {
+            // Client déconnecté → stop Z.ai
+            abortController.abort();
+            return false;
+          }
+        };
+
+        // Envoyer les métadonnées initiales
+        if (!safeEnqueue(`event: meta\ndata: ${JSON.stringify({ conversationId, stats })}\n\n`)) return;
+
+        let fullResponse = '';
+        try {
+          const { callGLMStream } = await import('@/lib/ai-assistant');
+          
+          for await (const chunk of callGLMStream(
+            await import('@/lib/ai-assistant').then(m => m.buildContextPrompt(
+              { articles: articlesContext, stats, userName: user.nom },
+              question.trim()
+            )),
+            {
+              temperature: 0.7,
+              maxTokens: 800,
+              signal: abortController.signal,
+            }
+          )) {
+            fullResponse += chunk;
+            if (!safeEnqueue(`event: token\ndata: ${JSON.stringify({ content: chunk })}\n\n`)) return;
+          }
+
+          await db.message.create({
+            data: { conversationId, role: 'assistant', contenu: fullResponse },
+          });
+
+          safeEnqueue(`event: done\ndata: {}\n\n`);
+        } catch (e: any) {
+          if (fullResponse) {
+            await db.message.create({
+              data: { conversationId, role: 'assistant', contenu: fullResponse + ' [interrompu]' },
+            }).catch((dbErr) => console.error('Save partielle échouée:', dbErr));
+          }
+          safeEnqueue(`event: error\ndata: ${JSON.stringify({ error: e.message })}\n\n`);
+        } finally {
+          try { controller.close(); } catch { /* déjà fermé */ }
+        }
+      },
+      cancel() {
+        abortController.abort();
+      },
     });
 
-    // === SAUVEGARDE MÉMOIRE (ne doit jamais faire échouer le chat) ===
-    let conversationId = existingConversationId;
-    try {
-      if (conversationId) {
-        // Vérifier que la conversation appartient bien à cet utilisateur
-        const conv = await db.conversation.findFirst({
-          where: { id: conversationId, userId: user.id },
-        });
-        if (!conv) conversationId = undefined; // id invalide ou d'autrui → nouvelle conv
-      }
-      if (!conversationId) {
-        const titre = question.trim().slice(0, 60) + (question.length > 60 ? '...' : '');
-        const conv = await db.conversation.create({
-          data: { userId: user.id, titre }
-        });
-        conversationId = conv.id;
-      } else {
-        await db.conversation.update({
-          where: { id: conversationId },
-          data: { majLe: new Date() }
-        });
-      }
-      await db.message.create({
-        data: { conversationId, role: 'user', contenu: question.trim() }
-      });
-      await db.message.create({
-        data: { conversationId, role: 'assistant', contenu: reponse }
-      });
-    } catch (saveError) {
-      console.error('Erreur sauvegarde mémoire (chat conservé):', saveError);
-      conversationId = undefined;
-    }
-
-    return NextResponse.json({
-      success: true,
-      reponse,
-      conversationId,
-      context: { stats },
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      },
     });
-
   } catch (error: any) {
     console.error('Erreur assistant IA:', error);
 

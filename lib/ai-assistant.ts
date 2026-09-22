@@ -190,3 +190,77 @@ export function getSuggestedQuestions(context: AssistantContext): string[] {
 
   return base.slice(0, 5);
 }
+
+/**
+ * Appel streaming à l'API GLM 4.5 Flash (Z.ai)
+ * Retourne un générateur asynchrone qui yield chaque token au fur et à mesure
+ */
+export async function* callGLMStream(
+  messages: ChatMessage[],
+  options?: {
+    temperature?: number;
+    maxTokens?: number;
+    signal?: AbortSignal;
+  }
+): AsyncGenerator<string> {
+  if (!GLM_CONFIG.apiKey) {
+    throw new Error('GLM_API_KEY non configurée');
+  }
+
+  const response = await fetch(`${GLM_CONFIG.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GLM_CONFIG.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GLM_CONFIG.model,
+      messages,
+      temperature: options?.temperature ?? 0.7,
+      max_tokens: options?.maxTokens ?? 800,
+      stream: true,
+    }),
+    signal: options?.signal,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`GLM API error: ${response.status} - ${error}`);
+  }
+
+  if (!response.body) {
+    throw new Error('Pas de corps de réponse pour le streaming');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        const data = trimmed.slice(6);
+        if (data === '[DONE]') return;
+
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) yield content;
+        } catch {
+          // Ignorer les chunks invalides
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
