@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       where: { userId },
       include: {
         mouvements: {
-          take: 20,
+          take: 5,
           orderBy: { date: 'desc' },
         },
       },
