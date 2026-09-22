@@ -26,7 +26,6 @@ export default function AssistantPage() {
   const [loading, setLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [conversationId, setConversationId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -48,77 +47,67 @@ export default function AssistantPage() {
   useEffect(() => { scrollToBottom(); }, [messages]);
 
   const handleSend = async (question: string) => {
-  if (!question.trim() || loading) return;
-  const q = question.trim();
-  setInput('');
-  setLoading(true);
+    if (!question.trim() || loading) return;
+    const q = question.trim();
+    setInput('');
+    setLoading(true);
 
-  const userMsg = { id: `user-${Date.now()}`, role: 'user' as const, content: q, timestamp: new Date() };
-  const assistantId = `assistant-${Date.now()}`;
-  setMessages(prev => [...prev, userMsg, { id: assistantId, role: 'assistant' as const, content: '', timestamp: new Date(), streaming: true }]);
-  setLoading(true);
+    const userMsg = { id: `user-${Date.now()}`, role: 'user' as const, content: q, timestamp: new Date() };
+    setMessages(prev => [...prev, userMsg]);
 
-  try {
-    const res = await fetch('/api/ai-assistant', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: q }),
-    });
+    try {
+      const res = await fetch('/api/ai-assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q }),
+      });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    if (!res.body) throw new Error('Stream non disponible');
+      const data = await res.json();
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let fullText = '';
+      if (data.success) {
+        const assistantMsg = { id: `assistant-${Date.now()}`, role: 'assistant' as const, content: data.reponse, timestamp: new Date() };
+        setMessages(prev => [...prev, assistantMsg]);
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      let eventType = 'token';
-      for (const line of lines) {
-        if (line.startsWith('event: ')) {
-          eventType = line.slice(7).trim();
-        } else if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-
-            if (eventType === 'meta') {
-              if (data.conversationId) setConversationId(data.conversationId);
-            } else if (eventType === 'token') {
-              fullText += data.content;
-              setMessages(prev => prev.map(m =>
-                m.id === assistantId ? { ...m, content: fullText } : m
-              ));
-            } else if (eventType === 'done') {
-              setMessages(prev => prev.map(m =>
-                m.id === assistantId ? { ...m, streaming: false } : m
-              ));
-            } else if (eventType === 'error') {
-              setMessages(prev => prev.map(m =>
-                m.id === assistantId ? { ...m, content: fullText || 'Réponse interrompue', streaming: false } : m
-              ));
-            }
-          } catch {
-            // Ignorer les chunks invalides
-          }
+        // Update suggestions based on response
+        const lower = data.reponse.toLowerCase();
+        let newSuggs: Array<{label: string; prompt: string; icon: React.ReactNode}> = [];
+        if (lower.includes('marge') || lower.includes('profit') || lower.includes('bénéfice')) {
+          newSuggs.push({label: "Améliorer ma marge", prompt: "Comment puis-je augmenter ma marge sur cet article ?", icon: <Sparkles className="h-4 w-4" />});
+          newSuggs.push({label: "Analyse des coûts", prompt: "Quels sont mes coûts principaux qui réduisent ma marge ?", icon: <Sparkles className="h-4 w-4" />});
         }
+        if (lower.includes('rupture') || lower.includes('stock') || lower.includes('réapprovisionner')) {
+          newSuggs.push({label: "Articles à réapprovisionner", prompt: "Quels articles dois-je commander cette semaine ?", icon: <Package className="h-4 w-4" />});
+          newSuggs.push({label: "Prévision des ventes", prompt: "Quelle quantité devrais-je prévoir pour le mois prochain ?", icon: <Package className="h-4 w-4" />});
+        }
+        if (lower.includes('vente') || lower.includes('ca') || lower.includes("chiffre d'affaires")) {
+          newSuggs.push({label: "Booster mes ventes", prompt: "Quelles actions puis-je mettre en place pour augmenter mes ventes ?", icon: <TrendingUp className="h-4 w-4" />});
+          newSuggs.push({label: "Meilleures ventes", prompt: "Quels sont mes articles les plus vendus ce mois-ci ?", icon: <TrendingUp className="h-4 w-4" />});
+        }
+        if (lower.includes('prix') || lower.includes('tarif')) {
+          newSuggs.push({label: "Fixer un bon prix", prompt: "Comment déterminer le prix de vente optimal pour un nouveau produit ?", icon: <DollarSign className="h-4 w-4" />});
+          newSuggs.push({label: "Analyse de la concurrence", prompt: "Quels sont les prix pratiqués par la concurrence pour des produits similaires ?", icon: <DollarSign className="h-4 w-4" />});
+        }
+        if (lower.includes('whatsapp') || lower.includes('instagram') || lower.includes('marketing')) {
+          newSuggs.push({label: "Idées marketing", prompt: "Donne-moi 3 idées de promotions WhatsApp pour attirer plus de clients.", icon: <MessageSquare className="h-4 w-4" />});
+          newSuggs.push({label: "Créer une offre spéciale", prompt: "Comment créer une offre « 2 pour le prix d'1 » efficace ?", icon: <Sparkles className="h-4 w-4" />});
+        }
+        if (newSuggs.length === 0) {
+          newSuggs = [
+            {label: "Stock à réapprovisionner", prompt: "Quels articles dois-je réapprovisionner cette semaine ?", icon: <Package className="h-4 w-4" />},
+            {label: "Améliorer mes marges", prompt: "Comment améliorer ma marge globale ?", icon: <Sparkles className="h-4 w-4" />},
+            {label: "Meilleures ventes du mois", prompt: "Quels sont mes meilleures ventes du mois ?", icon: <TrendingUp className="h-4 w-4" />}
+          ];
+        }
+        setSuggestions(newSuggs.slice(0, 6));
+      } else {
+        setMessages(prev => [...prev, { id: `assistant-${Date.now()}`, role: 'assistant', content: data.error || 'Erreur', timestamp: new Date() }]);
       }
+    } catch {
+      setMessages(prev => [...prev, { id: `assistant-${Date.now()}`, role: 'assistant', content: 'Erreur de connexion', timestamp: new Date() }]);
+    } finally {
+      setLoading(false);
     }
-  } catch (e: any) {
-    setMessages(prev => prev.map(m =>
-      m.id === assistantId ? { ...m, content: 'Erreur de connexion', streaming: false } : m
-    ));
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleSuggestionClick = (prompt: string) => handleSend(prompt);
 
