@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, LogOut, Menu, X, TrendingUp, Package, DollarSign, ArrowUpRight, ArrowDownRight, Search, ChevronRight, User, Settings, Activity, BarChart3, Bot, Download, ShoppingBag, XCircle, CheckCircle, Clock, Eye, MessageSquare, Hourglass, Badge, Truck, MapPin } from 'lucide-react';
+import { Plus, LogOut, Menu, X, TrendingUp, Package, DollarSign, ArrowUpRight, ArrowDownRight, Search, ChevronRight, User, Settings, Activity, BarChart3, Bot, Download, ShoppingBag, XCircle, CheckCircle, Clock, Eye, MessageSquare, Hourglass, Badge, Truck, MapPin, MoreHorizontal } from 'lucide-react';
 import { formatPhone } from '@/lib/format';
 import { Button } from '@/components/ui/Button';
 import { Badge as BadgeComponent } from '@/components/ui/Badge';
@@ -75,6 +75,7 @@ export default function StockPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [validatingCommande, setValidatingCommande] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -164,8 +165,8 @@ export default function StockPage() {
 
   const accentColor = user?.couleur || '#2563eb';
 
-  // === FIX BUG 1 : fonction handleLogout propre ===
   const handleLogout = async () => {
+    setMenuOpen(false);
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/auth/login');
@@ -176,6 +177,7 @@ export default function StockPage() {
   };
 
   const handleExport = () => {
+    setMenuOpen(false);
     const headers = ['Nom', 'Catégorie', 'Quantité', 'Prix Achat (FCFA)', 'Prix Vente (FCFA)', 'Valeur Stock (FCFA)'];
     const rows = articles.map(a => [
       a.nom,
@@ -225,22 +227,60 @@ export default function StockPage() {
             </div>
 
             <div className="flex items-center space-x-2">
-              <button onClick={handleExport} className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl active:bg-emerald-100 touch-manipulation transition-colors" title="Exporter CSV">
-                <Download className="h-5 w-5" />
-              </button>
               <Link href="/caisse" className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl active:bg-blue-100 touch-manipulation transition-colors" title="Caisse">
                 <DollarSign className="h-5 w-5" />
               </Link>
               <Link href="/stats" className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-xl active:bg-purple-100 touch-manipulation transition-colors" title="Statistiques">
                 <BarChart3 className="h-5 w-5" />
               </Link>
-              <Link href="/parametres" className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl active:bg-gray-200 touch-manipulation transition-colors" title="Paramètres">
-                <Settings className="h-5 w-5" />
-              </Link>
-              {/* === FIX BUG 1 : bouton déconnexion compact (icône) + redirection propre === */}
-              <button onClick={handleLogout} className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl active:bg-red-100 touch-manipulation transition-colors" title="Déconnexion">
-                <LogOut className="h-5 w-5" />
-              </button>
+              
+              <div className="relative">
+                <button 
+                  onClick={() => setMenuOpen(!menuOpen)} 
+                  className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl active:bg-gray-200 touch-manipulation transition-colors" 
+                  title="Plus d'options"
+                  aria-label="Plus d'options"
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                </button>
+                
+                {menuOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50">
+                      <button 
+                        onClick={handleExport} 
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                      >
+                        <Download className="h-4 w-4 text-gray-500" />
+                        <span>Exporter en CSV</span>
+                      </button>
+                      
+                      <Link 
+                        href="/parametres" 
+                        onClick={() => setMenuOpen(false)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <Settings className="h-4 w-4 text-gray-500" />
+                        <span>Paramètres</span>
+                      </Link>
+                      
+                      <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+                      
+                      <button 
+                        onClick={handleLogout} 
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-left"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Déconnexion</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -251,7 +291,6 @@ export default function StockPage() {
           <div className="mb-5 p-4 rounded-2xl text-white" style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)` }}>
             <p className="text-sm text-white/80">Bienvenue,</p>
             <h2 className="text-xl font-bold text-white">{user.nom}</h2>
-            {/* === FIX BUG 2 : grid-cols-2 pour aligner les 2 stats === */}
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="bg-white/20 px-3 py-2 rounded-lg text-center">
                 <p className="text-xs text-white/80">Valeur stock</p>
