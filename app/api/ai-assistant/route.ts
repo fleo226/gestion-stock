@@ -72,6 +72,13 @@ export async function POST(request: NextRequest) {
       totalVendu,
     };
 
+    // === Construction des messages (1 SEULE FOIS) ===
+    const { callGLMStream, buildContextPrompt } = await import('@/lib/ai-assistant');
+    const messages = buildContextPrompt(
+      { articles: articlesContext, stats, userName: user.nom },
+      question.trim()
+    );
+
     // === CRÉER LA CONVERSATION AVANT LE STREAM ===
     let conversationId = existingConversationId;
     if (conversationId) {
@@ -99,12 +106,6 @@ export async function POST(request: NextRequest) {
     });
 
     // === LANCER LE STREAM SSE ===
-    const { callGLMStream, buildContextPrompt } = await import('@/lib/ai-assistant');
-    const messages = buildContextPrompt(
-      { articles: articlesContext, stats, userName: user.nom },
-      question.trim()
-    );
-
     const encoder = new TextEncoder();
     const abortController = new AbortController();
 
@@ -115,48 +116,42 @@ export async function POST(request: NextRequest) {
             controller.enqueue(encoder.encode(data));
             return true;
           } catch {
-            // Client déconnecté → stop Z.ai
             abortController.abort();
             return false;
           }
         };
 
-        // Envoyer les métadonnées initiales
+        // 1. Meta event
         if (!safeEnqueue(`event: meta\ndata: ${JSON.stringify({ conversationId, stats })}\n\n`)) return;
 
         let fullResponse = '';
         try {
-          const { callGLMStream } = await import('@/lib/ai-assistant');
-          
-          for await (const chunk of callGLMStream(
-            await import('@/lib/ai-assistant').then(m => m.buildContextPrompt(
-              { articles: articlesContext, stats, userName: user.nom },
-              question.trim()
-            )),
-            {
-              temperature: 0.7,
-              maxTokens: 800,
-              signal: abortController.signal,
-            }
-          )) {
+          // ✅ FIX : on utilise la variable `messages` déjà construite plus haut
+          // (au lieu de la reconstruire via un 2e import dynamique)
+          for await (const chunk of callGLMStream(messages, {
+            temperature: 0.7,
+            maxTokens: 800,
+            signal: abortController.signal,
+          })) {
             fullResponse += chunk;
             if (!safeEnqueue(`event: token\ndata: ${JSON.stringify({ content: chunk })}\n\n`)) return;
           }
 
+          // Sauvegarder la réponse complète
           await db.message.create({
             data: { conversationId, role: 'assistant', contenu: fullResponse },
-          });
+          }).catch(e => console.error('Save réponse échouée:', e));
 
           safeEnqueue(`event: done\ndata: {}\n\n`);
         } catch (e: any) {
           if (fullResponse) {
             await db.message.create({
               data: { conversationId, role: 'assistant', contenu: fullResponse + ' [interrompu]' },
-            }).catch((dbErr) => console.error('Save partielle échouée:', dbErr));
+            }).catch(err => console.error('Save partielle échouée:', err));
           }
           safeEnqueue(`event: error\ndata: ${JSON.stringify({ error: e.message })}\n\n`);
         } finally {
-          try { controller.close(); } catch { /* déjà fermé */ }
+          try { controller.close(); } catch {}
         }
       },
       cancel() {
@@ -166,12 +161,13 @@ export async function POST(request: NextRequest) {
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, no-transform, must-revalidate',
         'X-Accel-Buffering': 'no',
+        'Content-Encoding': 'identity',
       },
     });
+
   } catch (error: any) {
     console.error('Erreur assistant IA:', error);
 
