@@ -4,10 +4,5 @@
       "path": "/api/ping",
       "schedule": "30 6 * * *"
     }
-  ],
-  "functions": {
-    "app/api/**/route.ts": {
-      "maxRequestBodySize": "10mb"
-    }
-  }
+  ]
 }
