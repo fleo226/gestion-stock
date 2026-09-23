@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Package, Image, Camera, Trash2, Eye, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Package, Camera, Trash2, Loader2 } from 'lucide-react';
 
 const UNITES = ['piece', 'paire', 'metre', 'kg', 'lot', 'sachet'];
 
@@ -22,7 +22,6 @@ export default function NouvelArticlePage() {
     photoUrl: ''
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const handleImageUrlChange = (url: string) => {
@@ -32,16 +31,46 @@ export default function NouvelArticlePage() {
 
   const handleImageUpload = async (file: File) => {
     setUploading(true);
+    setError('');
     try {
-      // Convert to base64 for demo (in production, upload to Supabase Storage)
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        setPreviewUrl(base64);
-        setFormData({ ...formData, photoUrl: base64 });
-        setImageFile(file);
-      };
-      reader.readAsDataURL(file);
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        setError('Configuration Supabase manquante.');
+        return;
+      }
+
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+      const filePath = `articles/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('Erreur upload Supabase:', uploadError);
+        setError(`Erreur upload: ${uploadError.message}`);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('photos')
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+      setPreviewUrl(publicUrl);
+      setFormData({ ...formData, photoUrl: publicUrl });
+    } catch (err: any) {
+      console.error('Erreur:', err);
+      setError(`Erreur: ${err.message}`);
     } finally {
       setUploading(false);
     }
@@ -87,7 +116,6 @@ export default function NouvelArticlePage() {
 
   const removeImage = () => {
     setPreviewUrl(null);
-    setImageFile(null);
     setFormData({ ...formData, photoUrl: '' });
   };
 
@@ -111,7 +139,6 @@ export default function NouvelArticlePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
@@ -125,30 +152,26 @@ export default function NouvelArticlePage() {
         </div>
       </header>
 
-      {/* Form */}
       <main className="max-w-2xl mx-auto px-4 py-6 pb-24">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm animate-pop">
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
                 {error}
               </div>
             )}
 
-            {/* Photo Section - Mobile Optimized */}
             <fieldset className="space-y-3">
               <legend className="block text-sm font-medium text-gray-700">Photo de l'article</legend>
               
-              {/* Preview / Drop Zone */}
               <div className="relative">
                 <div
-                  className={`w-full aspect-square max-w-xs mx-auto rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center transition-colors touch-manipulation ${
+                  className={`w-full aspect-square max-w-xs mx-auto rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center transition-colors touch-manipulation relative overflow-hidden ${
                     previewUrl ? 'border-transparent' : ''
                   }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  style={{ backgroundColor: previewUrl ? 'transparent' : undefined }}
                 >
                   {previewUrl ? (
                     <>
@@ -160,7 +183,7 @@ export default function NouvelArticlePage() {
                       <button
                         type="button"
                         onClick={removeImage}
-                        className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors touch-manipulation"
+                        className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors touch-manipulation z-10"
                         aria-label="Supprimer la photo"
                       >
                         <Trash2 className="h-5 w-5" />
@@ -168,43 +191,53 @@ export default function NouvelArticlePage() {
                     </>
                   ) : (
                     <div className="text-center p-4">
-                      <div className="mx-auto mb-2 p-3 bg-gray-100 rounded-xl">
-                        <Camera className="h-8 w-8 text-gray-400" />
-                      </div>
-                      <p className="text-sm text-gray-600">Touchez pour ajouter une photo</p>
-                      <p className="text-xs text-gray-400 mt-1">URL ou glisser-déposer</p>
+                      {uploading ? (
+                        <>
+                          <div className="mx-auto mb-2 p-3 bg-blue-50 rounded-xl">
+                            <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+                          </div>
+                          <p className="text-sm text-blue-600">Upload en cours...</p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="mx-auto mb-2 p-3 bg-gray-100 rounded-xl">
+                            <Camera className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <p className="text-sm text-gray-600">Touchez pour ajouter une photo</p>
+                          <p className="text-xs text-gray-400 mt-1">Upload direct Supabase</p>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
 
-                {/* Hidden file input */}
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  aria-label="Choisir une photo"
-                />
+                {!previewUrl && !uploading && (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    aria-label="Choisir une photo"
+                  />
+                )}
 
-                {/* URL Input */}
                 <div className="mt-3">
                   <input
                     type="url"
-                    value={formData.photoUrl}
+                    value={formData.photoUrl.startsWith('data:') ? '' : formData.photoUrl}
                     onChange={(e) => handleImageUrlChange(e.target.value)}
                     placeholder="https://exemple.com/photo.jpg"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     disabled={!!previewUrl && !formData.photoUrl.startsWith('http')}
                   />
-                  {previewUrl && !formData.photoUrl.startsWith('http') && (
-                    <p className="text-xs text-green-600 mt-1">Photo ajoutée depuis l'appareil</p>
+                  {previewUrl && formData.photoUrl.startsWith('https://') && (
+                    <p className="text-xs text-green-600 mt-1">Photo ajoutée depuis Supabase Storage</p>
                   )}
                 </div>
               </div>
             </fieldset>
 
-            {/* Nom */}
             <div>
               <label htmlFor="nom" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Nom de l'article <span className="text-red-500">*</span>
@@ -221,7 +254,6 @@ export default function NouvelArticlePage() {
               />
             </div>
 
-            {/* Taille & Couleur */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="taille" className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -253,7 +285,6 @@ export default function NouvelArticlePage() {
               </div>
             </div>
 
-            {/* Prix */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="prixAchat" className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -287,7 +318,6 @@ export default function NouvelArticlePage() {
               </div>
             </div>
 
-            {/* Quantite & Unite */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="quantite" className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -321,9 +351,8 @@ export default function NouvelArticlePage() {
               </div>
             </div>
 
-            {/* Bénéfice estimé - Visual feedback */}
             {formData.prixAchat && formData.prixVente && parseInt(formData.prixVente) > parseInt(formData.prixAchat) && (
-              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+              <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
                 <div className="flex items-center space-x-2 text-green-700 mb-1">
                   <Package className="h-5 w-5" />
                   <span className="font-medium">Bénéfice estimé par unité</span>
@@ -337,7 +366,6 @@ export default function NouvelArticlePage() {
               </div>
             )}
 
-            {/* Submit */}
             <div className="flex items-center justify-end space-x-3 pt-2 border-t border-gray-100">
               <Link
                 href="/stock"
