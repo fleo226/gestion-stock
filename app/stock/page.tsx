@@ -164,6 +164,17 @@ export default function StockPage() {
 
   const accentColor = user?.couleur || '#2563eb';
 
+  // === FIX BUG 1 : fonction handleLogout propre ===
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/auth/login');
+      router.refresh();
+    } catch (e) {
+      console.error('Erreur logout:', e);
+    }
+  };
+
   const handleExport = () => {
     const headers = ['Nom', 'Catégorie', 'Quantité', 'Prix Achat (FCFA)', 'Prix Vente (FCFA)', 'Valeur Stock (FCFA)'];
     const rows = articles.map(a => [
@@ -174,7 +185,7 @@ export default function StockPage() {
       String(a.prixVente),
       String(a.valeurStock),
     ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `\"${c.replace(/\"/g, '""')}\"`).join(',')).join('\n');
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -226,12 +237,10 @@ export default function StockPage() {
               <Link href="/parametres" className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl active:bg-gray-200 touch-manipulation transition-colors" title="Paramètres">
                 <Settings className="h-5 w-5" />
               </Link>
-              <form action="/api/auth/logout" method="POST">
-                <button className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <LogOut className="h-4 w-4" />
-                  <span>Déconnexion</span>
-                </button>
-              </form>
+              {/* === FIX BUG 1 : bouton déconnexion compact (icône) + redirection propre === */}
+              <button onClick={handleLogout} className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl active:bg-red-100 touch-manipulation transition-colors" title="Déconnexion">
+                <LogOut className="h-5 w-5" />
+              </button>
             </div>
           </div>
         </div>
@@ -242,14 +251,15 @@ export default function StockPage() {
           <div className="mb-5 p-4 rounded-2xl text-white" style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)` }}>
             <p className="text-sm text-white/80">Bienvenue,</p>
             <h2 className="text-xl font-bold text-white">{user.nom}</h2>
-            <div className="mt-3 space-x-4">
-              <div className="bg-white/20 px-3 py-1.5 rounded-lg">
-                <p className="text-sm text-white/80">Valeur stock</p>
-                <p className="text-base font-bold text-white">{formatPrice(stats.valeurStock)}</p>
+            {/* === FIX BUG 2 : grid-cols-2 pour aligner les 2 stats === */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="bg-white/20 px-3 py-2 rounded-lg text-center">
+                <p className="text-xs text-white/80">Valeur stock</p>
+                <p className="text-sm font-bold text-white">{formatPrice(stats.valeurStock)}</p>
               </div>
-              <div className="bg-white/20 px-3 py-1.5 rounded-lg">
-                <p className="text-sm text-white/80">Bénéfice</p>
-                <p className="text-base font-bold text-white">{formatPrice(stats.benefice)}</p>
+              <div className="bg-white/20 px-3 py-2 rounded-lg text-center">
+                <p className="text-xs text-white/80">Bénéfice</p>
+                <p className="text-sm font-bold text-white">{formatPrice(stats.benefice)}</p>
               </div>
             </div>
           </div>
