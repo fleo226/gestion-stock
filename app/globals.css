@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* === FIX DARK MODE TAILWIND v4 ===
+   Par défaut, Tailwind v4 applique dark: variants quand l'OS est en sombre.
+   Cette ligne override ce comportement pour que dark: s'applique
+   UNIQUEMENT si <html> a class="dark" (contrôlé par ThemeProvider).
+   Résultat : site BLANC par défaut, peu importe l'OS.
+   L'utilisateur peut choisir "Sombre" dans /parametres pour activer. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #111827;
@@ -111,7 +119,6 @@ input[type="number"] {
     min-height: 44px;
   }
   
-  /* Active states for touch */
   button:active, [role="button"]:active, a:active {
     transform: scale(0.98);
   }
