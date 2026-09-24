@@ -19,7 +19,12 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system');
+  // === FIX : default 'light' au lieu de 'system' ===
+  // Avant : 'system' = suit l'OS, ce qui causait du dark mode involontaire
+  //         et rendait le texte invisible dans certaines pages (ex: chat IA)
+  // Après : 'light' = blanc par défaut partout
+  //         L'utilisateur peut toujours choisir 'dark' ou 'system' dans /parametres
+  const [theme, setThemeState] = useState<Theme>('light');
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
 
@@ -27,7 +32,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem('theme') as Theme;
-    if (stored) setThemeState(stored);
+    // Si l'utilisateur a déjà choisi un thème avant, on respecte son choix
+    // Sinon on reste sur 'light' (nouveau défaut)
+    if (stored === 'light' || stored === 'dark' || stored === 'system') {
+      setThemeState(stored);
+    }
   }, []);
 
   // Apply theme and listen for system changes
