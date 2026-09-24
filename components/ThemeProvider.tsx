@@ -19,11 +19,8 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // === FIX : default 'light' au lieu de 'system' ===
-  // Avant : 'system' = suit l'OS, ce qui causait du dark mode involontaire
-  //         et rendait le texte invisible dans certaines pages (ex: chat IA)
-  // Après : 'light' = blanc par défaut partout
-  //         L'utilisateur peut toujours choisir 'dark' ou 'system' dans /parametres
+  // === FORCE 'light' BY DEFAULT ===
+  // Plus de 'system' qui suivait l'OS et causait du dark mode involontaire
   const [theme, setThemeState] = useState<Theme>('light');
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
@@ -31,15 +28,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Initialize from localStorage on client side
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem('theme') as Theme;
-    // Si l'utilisateur a déjà choisi un thème avant, on respecte son choix
-    // Sinon on reste sur 'light' (nouveau défaut)
-    if (stored === 'light' || stored === 'dark' || stored === 'system') {
+    const stored = localStorage.getItem('theme');
+    
+    // On ne respecte QUE les choix explicites 'light' ou 'dark'
+    // Si l'ancien code avait sauvegardé 'system', on l'efface
+    if (stored === 'light' || stored === 'dark') {
       setThemeState(stored);
+    } else if (stored === 'system') {
+      // Nettoie l'ancienne valeur 'system' qui posait problème
+      localStorage.removeItem('theme');
     }
+    
+    // === SAFETY NET : force remove 'dark' class au montage ===
+    // Même si l'OS est en dark, on commence en light
+    document.documentElement.classList.remove('dark');
   }, []);
 
-  // Apply theme and listen for system changes
+  // Apply theme
   useEffect(() => {
     if (!mounted) return;
 
@@ -52,15 +57,22 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const applyTheme = (resolved: 'light' | 'dark') => {
       setResolvedTheme(resolved);
-      document.documentElement.classList.toggle('dark', resolved === 'dark');
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', 
-        resolved === 'dark' ? '#0f172a' : '#2563eb'
-      );
+      // Force remove 'dark' d'abord, puis ajoute si nécessaire
+      document.documentElement.classList.remove('dark');
+      if (resolved === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+      // Met à jour la meta theme-color pour la barre du navigateur
+      const metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) {
+        metaTheme.setAttribute('content', resolved === 'dark' ? '#0f172a' : '#2563eb');
+      }
     };
 
-    // Apply immediately on mount
+    // Applique immédiatement
     applyTheme(getResolvedTheme());
 
+    // Écoute les changements de préférence système (seulement si theme='system')
     const handler = (e: MediaQueryListEvent) => {
       if (theme === 'system') applyTheme(e.matches ? 'dark' : 'light');
     };
@@ -71,10 +83,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem('theme', newTheme);
+    // Sauvegarde dans localStorage
+    if (newTheme === 'light' || newTheme === 'dark' || newTheme === 'system') {
+      localStorage.setItem('theme', newTheme);
+    }
+    
+    // === APPLIQUE IMMÉDIATEMENT (pas d'attente useEffect) ===
+    // C'est ce qui manquait : maintenant le clic "Clair" marche instantanément
+    if (newTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+      setResolvedTheme('light');
+    } else if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+      setResolvedTheme('dark');
+    } else if (newTheme === 'system') {
+      // Pour 'system', on doit attendre le useEffect pour appliquer
+      // (car il faut vérifier matchMedia)
+    }
   };
 
-  // Provide context with default values during SSR/prerendering
   const contextValue: ThemeContextType = {
     theme,
     setTheme,
