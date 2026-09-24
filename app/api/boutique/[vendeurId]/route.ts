@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+// =====================================================
+// API /api/boutique/[vendeurId]
+// GET : Récupère les infos boutique publique + articles
+// Utilisé par la page /boutique/[vendeurId] (vue cliente)
+// =====================================================
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ vendeurId: string }> }
@@ -10,11 +16,31 @@ export async function GET(
 
     const user = await db.user.findUnique({
       where: { id: vendeurId },
-      select: { id: true, nom: true, couleur: true },
+      select: {
+        id: true,
+        nom: true,
+        couleur: true,
+        boutiqueNom: true,
+        boutiqueSlug: true,
+        boutiqueDescription: true,
+        boutiqueLogoUrl: true,
+        boutiqueWhatsApp: true,
+        boutiqueActive: true,
+        boutiqueAccentColor: true,
+      },
     });
 
     if (!user) {
       return NextResponse.json({ error: 'Boutique introuvable' }, { status: 404 });
+    }
+
+    // Si la boutique n'est pas active, on bloque l'accès
+    // (la commerçante peut la désactiver dans /boutique/configurer)
+    if (user.boutiqueActive === false) {
+      return NextResponse.json({ 
+        error: 'Cette boutique est actuellement inactive',
+        inactive: true,
+      }, { status: 403 });
     }
 
     const articles = await db.article.findMany({
@@ -26,10 +52,21 @@ export async function GET(
       orderBy: { creeLe: 'desc' },
     });
 
+    // Formatage de la réponse
     return NextResponse.json({
       success: true,
       data: {
-        vendeur: { nom: user.nom, couleur: user.couleur },
+        vendeur: {
+          id: user.id,
+          nom: user.nom,
+          couleur: user.couleur,
+          // Champs custom boutique (avec fallbacks si pas configurés)
+          boutiqueNom: user.boutiqueNom || user.nom,
+          boutiqueDescription: user.boutiqueDescription,
+          boutiqueLogoUrl: user.boutiqueLogoUrl,
+          boutiqueWhatsApp: user.boutiqueWhatsApp,
+          boutiqueAccentColor: user.boutiqueAccentColor || user.couleur || '#2563eb',
+        },
         articles: articles.map(a => ({
           id: a.id,
           nom: a.nom,
