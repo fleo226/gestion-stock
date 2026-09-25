@@ -248,7 +248,7 @@ export default function BoutiquePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      {/* === HERO — Style Instagram/Facebook Profile === */}
+      {/* === HERO === */}
       <div className="relative">
         <div className="w-full h-28" style={{ backgroundColor: accentColor }} />
         <div className="absolute top-3 left-0 right-0 max-w-2xl mx-auto px-4 flex items-center justify-between">
@@ -275,7 +275,7 @@ export default function BoutiquePage() {
           {vendeur.boutiqueDescription ? (
             <p className="text-sm text-gray-600 mt-1 px-4 max-w-md mx-auto">{vendeur.boutiqueDescription}</p>
           ) : (
-            <p className="text-sm text-gray-500 mt-1">Bienvenue ! Découvrez nos articles ci-dessous 👇</p>
+            <p className="text-sm text-gray-500 mt-1">Bienvenue ! Découvrez nos articles ci-dessous</p>
           )}
           <div className="flex items-center justify-center gap-6 mt-4 pb-4">
             <div className="text-center">
@@ -394,7 +394,7 @@ export default function BoutiquePage() {
                 <div className="p-3">
                   <h3 className="font-medium text-gray-900 text-sm truncate">{article.nom}</h3>
                   {article.taille && <p className="text-xs text-gray-500">Taille : {article.taille}</p>}
-                  <p className="text-lg font-bold mt-1 text-gray-900">{article.prixVente.toLocaleString()}<span className="text-xs font-normal"> FCFA</span></p>
+                  <p className="text-lg font-bold mt-1" style={{ color: accentColor }}>{article.prixVente.toLocaleString()}<span className="text-xs font-normal"> FCFA</span></p>
                   <div className="mt-2">
                     {getQuantite(article.id) === 0 ? (
                       <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); ajouterArticle(article.id); }} className="w-full py-2 rounded-xl text-white text-sm font-medium active:scale-95 transition-transform" style={{ backgroundColor: accentColor }}>Ajouter</button>
@@ -420,7 +420,7 @@ export default function BoutiquePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">{commande.reduce((s, c) => s + c.quantite, 0)} article(s)</p>
-                <p className="text-xl font-bold text-gray-900">{getTotal().toLocaleString()} FCFA</p>
+                <p className="text-xl font-bold" style={{ color: accentColor }}>{getTotal().toLocaleString()} FCFA</p>
               </div>
               <button onClick={() => setShowCommande(true)} className="flex items-center space-x-2 px-6 py-3 rounded-xl text-white font-medium active:scale-95 transition-transform" style={{ backgroundColor: accentColor }}>
                 <ShoppingCart className="h-5 w-5" /><span>Commander</span>
@@ -470,7 +470,7 @@ export default function BoutiquePage() {
                 </div>
                 <div className="flex items-center justify-between py-3 border-t font-bold text-lg">
                   <span>Total</span>
-                  <span className="text-gray-900">{getTotal().toLocaleString()} FCFA</span>
+                  <span style={{ color: accentColor }}>{getTotal().toLocaleString()} FCFA</span>
                 </div>
                 <div className="space-y-3 mb-4">
                   <div>
