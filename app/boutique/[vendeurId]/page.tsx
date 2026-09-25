@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import {
   Package, ShoppingCart, Check, X, Loader2, MessageSquare,
   Search, Share2, MapPin, Star,
@@ -373,7 +374,7 @@ export default function BoutiquePage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filteredArticles.map(article => (
-              <div key={article.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <Link key={article.id} href={`/boutique/${vendeurId}/produit/${article.id}`} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow block">
                 <div className="aspect-square bg-gray-100 relative">
                   {article.photoUrl ? (
                     <img src={article.photoUrl} alt={article.nom} className="w-full h-full object-cover" />
@@ -393,20 +394,20 @@ export default function BoutiquePage() {
                 <div className="p-3">
                   <h3 className="font-medium text-gray-900 text-sm truncate">{article.nom}</h3>
                   {article.taille && <p className="text-xs text-gray-500">Taille : {article.taille}</p>}
-                  <p className="text-lg font-bold mt-1" style={{ color: accentColor }}>{article.prixVente.toLocaleString()}<span className="text-xs font-normal"> FCFA</span></p>
+                  <p className="text-lg font-bold mt-1 text-gray-900">{article.prixVente.toLocaleString()}<span className="text-xs font-normal"> FCFA</span></p>
                   <div className="mt-2">
                     {getQuantite(article.id) === 0 ? (
-                      <button onClick={() => ajouterArticle(article.id)} className="w-full py-2 rounded-xl text-white text-sm font-medium active:scale-95 transition-transform" style={{ backgroundColor: accentColor }}>Ajouter</button>
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); ajouterArticle(article.id); }} className="w-full py-2 rounded-xl text-white text-sm font-medium active:scale-95 transition-transform" style={{ backgroundColor: accentColor }}>Ajouter</button>
                     ) : (
                       <div className="flex items-center justify-between bg-gray-100 rounded-xl px-3 py-1">
-                        <button onClick={() => retirerArticle(article.id)} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-red-600 active:bg-white rounded-lg text-lg font-bold">−</button>
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); retirerArticle(article.id); }} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-red-600 active:bg-white rounded-lg text-lg font-bold">−</button>
                         <span className="font-semibold text-gray-900">{getQuantite(article.id)}</span>
-                        <button onClick={() => ajouterArticle(article.id)} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-green-600 active:bg-white rounded-lg text-lg font-bold">+</button>
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); ajouterArticle(article.id); }} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-green-600 active:bg-white rounded-lg text-lg font-bold">+</button>
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
@@ -419,7 +420,7 @@ export default function BoutiquePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">{commande.reduce((s, c) => s + c.quantite, 0)} article(s)</p>
-                <p className="text-xl font-bold" style={{ color: accentColor }}>{getTotal().toLocaleString()} FCFA</p>
+                <p className="text-xl font-bold text-gray-900">{getTotal().toLocaleString()} FCFA</p>
               </div>
               <button onClick={() => setShowCommande(true)} className="flex items-center space-x-2 px-6 py-3 rounded-xl text-white font-medium active:scale-95 transition-transform" style={{ backgroundColor: accentColor }}>
                 <ShoppingCart className="h-5 w-5" /><span>Commander</span>
@@ -469,7 +470,7 @@ export default function BoutiquePage() {
                 </div>
                 <div className="flex items-center justify-between py-3 border-t font-bold text-lg">
                   <span>Total</span>
-                  <span style={{ color: accentColor }}>{getTotal().toLocaleString()} FCFA</span>
+                  <span className="text-gray-900">{getTotal().toLocaleString()} FCFA</span>
                 </div>
                 <div className="space-y-3 mb-4">
                   <div>
