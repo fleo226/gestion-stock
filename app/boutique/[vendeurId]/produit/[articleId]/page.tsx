@@ -124,13 +124,12 @@ export default function FicheProduitPage() {
         </button>
 
         {/* Badge stock */}
-        {enStock && (
+        {enStock ? (
           <span className="absolute top-4 right-3 bg-white/90 backdrop-blur-sm text-xs font-bold px-2.5 py-1 rounded-full border border-gray-200 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
             {article.quantite} en stock
           </span>
-        )}
-        {!enStock && (
+        ) : (
           <span className="absolute top-4 right-3 bg-red-50 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full border border-red-200">
             Rupture
           </span>
@@ -147,7 +146,7 @@ export default function FicheProduitPage() {
             </p>
           )}
           <h1 className="text-lg font-bold text-gray-900">{article.nom}</h1>
-          <p className="text-xl font-bold text-gray-900 mt-1">
+          <p className="text-xl font-bold mt-1" style={{ color: accentColor }}>
             {article.prixVente.toLocaleString()} FCFA
           </p>
         </div>
@@ -186,8 +185,8 @@ export default function FicheProduitPage() {
           </div>
         </div>
 
-        {/* Description / Garanties */}
-        <div className="border-t border-gray-200 pt-4 space-y-3">
+        {/* Garanties */}
+        <div className="border-t border-gray-200 pt-4">
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-center justify-around text-xs text-gray-600">
             <div className="flex items-center gap-1.5">
               <Truck className="h-4 w-4" style={{ color: accentColor }} />
