@@ -1,10 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { cookies } from 'next/headers';
 
+// === GET : liste des commandes du vendeur connecté ===
+export async function GET() {
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('userId')?.value;
+    if (!userId) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    const commandes = await db.commande.findMany({
+      where: { vendeurId: userId },
+      include: {
+        lignes: {
+          include: {
+            article: { select: { id: true, nom: true, taille: true, couleur: true, photoUrl: true } },
+          },
+        },
+      },
+      orderBy: { creeLe: 'desc' },
+    });
+
+    return NextResponse.json({ success: true, data: commandes });
+  } catch (error) {
+    console.error('Erreur GET commandes:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
+}
+
+// === POST : créer OU valider une commande ===
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { vendeurId, clientNom, clientTel, items } = body;
+
+    // === Action: valider une commande (côté vendeur) ===
+    if (body.action === 'validate') {
+      const { commandeId } = body;
+      if (!commandeId) {
+        return NextResponse.json({ error: 'ID commande requis' }, { status: 400 });
+      }
+
+      const cookieStore = await cookies();
+      const userId = cookieStore.get('userId')?.value;
+      if (!userId) {
+        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      }
+
+      const commande = await db.commande.findFirst({
+        where: { id: commandeId, vendeurId: userId },
+      });
+      if (!commande) {
+        return NextResponse.json({ error: 'Commande introuvable' }, { status: 404 });
+      }
+
+      await db.commande.update({
+        where: { id: commandeId },
+        data: {
+          statut: 'CONFIRMEE',
+          valideeLe: new Date(),
+        },
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    // === Action: créer une commande (côté client) ===
+    const { vendeurId, clientNom, clientTel, clientAdresse, clientNote, items } = body;
 
     if (!vendeurId || !clientNom?.trim() || !items?.length) {
       return NextResponse.json({ error: 'Données manquantes' }, { status: 400 });
@@ -16,49 +79,75 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Vendeur introuvable' }, { status: 404 });
     }
 
-    // Vérifier le stock pour chaque article
+    // Vérifier le stock + calculer le total
+    let total = 0;
+    const validatedItems = [];
+
     for (const item of items) {
       const article = await db.article.findUnique({ where: { id: item.articleId } });
-      if (!article || article.quantite < item.quantite) {
+      if (!article) {
+        return NextResponse.json({ error: `Article introuvable` }, { status: 404 });
+      }
+      if (article.userId !== vendeurId) {
+        return NextResponse.json({ error: 'Article non autorisé' }, { status: 403 });
+      }
+      if (article.quantite < item.quantite) {
         return NextResponse.json(
-          { error: `Stock insuffisant pour l'article ${article?.nom || item.articleId}` },
+          { error: `Stock insuffisant pour ${article.nom} (disponible: ${article.quantite})` },
           { status: 400 }
         );
       }
+      total += article.prixVente * item.quantite;
+      validatedItems.push({
+        articleId: item.articleId,
+        quantite: item.quantite,
+        prixUnitaire: article.prixVente,
+      });
     }
 
-    // Créer la commande - décrémenter le stock et créer les mouvements SORTIE
-    for (const item of items) {
-      const article = await db.article.findUnique({ where: { id: item.articleId } });
-      
-      if (!article) {
-        return NextResponse.json(
-          { error: `Article introuvable : ${item.articleId}` },
-          { status: 404 }
-        );
-      }
-
-      // Créer le mouvement de sortie
-      await db.mouvement.create({
-        data: {
-          articleId: item.articleId,
-          type: 'SORTIE',
-          quantite: item.quantite,
-          prixUnitaire: article.prixVente,
-          note: `Commande client : ${clientNom}${clientTel ? ` (${clientTel})` : ''}`,
+    // === Créer la Commande en DB ===
+    const commande = await db.commande.create({
+      data: {
+        vendeurId,
+        clientNom: clientNom.trim(),
+        clientTelephone: clientTel?.trim() || null,
+        clientAdresse: clientAdresse?.trim() || null,
+        clientNote: clientNote?.trim() || null,
+        total,
+        statut: 'EN_ATTENTE_PAIEMENT',
+        lignes: {
+          create: validatedItems.map(item => ({
+            articleId: item.articleId,
+            quantite: item.quantite,
+            prixUnitaire: item.prixUnitaire,
+          })),
         },
-      });
+      },
+    });
 
-      // Décrémenter le stock
-      await db.article.update({
-        where: { id: item.articleId },
-        data: { quantite: article.quantite - item.quantite },
-      });
+    // === Décrémenter le stock + créer les mouvements SORTIE ===
+    for (const item of validatedItems) {
+      const article = await db.article.findUnique({ where: { id: item.articleId } });
+      if (article) {
+        await db.mouvement.create({
+          data: {
+            articleId: item.articleId,
+            type: 'SORTIE',
+            quantite: item.quantite,
+            prixUnitaire: item.prixUnitaire,
+            note: `Commande ${commande.id.slice(0, 8).toUpperCase()} : ${clientNom}${clientTel ? ` (${clientTel})` : ''}`,
+          },
+        });
+        await db.article.update({
+          where: { id: item.articleId },
+          data: { quantite: article.quantite - item.quantite },
+        });
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Commande confirmée et stock mis à jour',
+      data: { id: commande.id },
     });
   } catch (error) {
     console.error('Erreur POST commandes:', error);
