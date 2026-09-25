@@ -45,7 +45,6 @@ export default function PanierPage() {
         if (data.success) {
           setArticles(data.data.articles);
           setVendeur(data.data.vendeur);
-          // Lire le panier depuis localStorage
           const cartKey = `cart_${vendeurId}`;
           const stored = JSON.parse(localStorage.getItem(cartKey) || '[]');
           setCart(stored);
@@ -114,14 +113,6 @@ export default function PanierPage() {
     article: getArticle(item.articleId),
   })).filter(item => item.article);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* === Header === */}
@@ -143,7 +134,6 @@ export default function PanierPage() {
 
       <main className="max-w-2xl mx-auto px-4 py-4">
         {cartItems.length === 0 ? (
-          /* === Empty state === */
           <div className="text-center py-16">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <ShoppingCart className="h-10 w-10 text-gray-400" />
@@ -164,7 +154,6 @@ export default function PanierPage() {
             <div className="space-y-2 mb-4">
               {cartItems.map(({ articleId, quantite, article }) => (
                 <div key={articleId} className="bg-white rounded-xl border border-gray-200 p-3 flex items-center gap-3">
-                  {/* Photo */}
                   <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {article!.photoUrl ? (
                       <img src={article!.photoUrl} alt={article!.nom} className="w-full h-full object-cover" />
@@ -172,8 +161,6 @@ export default function PanierPage() {
                       <Package className="h-6 w-6 text-gray-300" />
                     )}
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                       <h3 className="text-sm font-bold text-gray-900 truncate">{article!.nom}</h3>
@@ -195,7 +182,6 @@ export default function PanierPage() {
                       <span className="text-sm font-bold" style={{ color: accentColor }}>
                         {(article!.prixVente * quantite).toLocaleString()} FCFA
                       </span>
-                      {/* Quantité */}
                       <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50">
                         <button
                           onClick={() => updateQuantite(articleId, -1)}
@@ -224,8 +210,8 @@ export default function PanierPage() {
                 <span className="font-medium text-gray-900">{getTotal().toLocaleString()} FCFA</span>
               </div>
               <div className="flex justify-between text-gray-500">
-                <span>Frais de livraison</span>
-                <span className="font-bold text-green-600">Gratuit</span>
+                <span>Livraison</span>
+                <span className="text-gray-500">À convenir avec la vendeuse</span>
               </div>
               <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
                 <span className="font-bold text-gray-900">Total à payer</span>
