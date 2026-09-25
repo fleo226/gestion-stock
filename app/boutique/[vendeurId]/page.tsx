@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Package, ShoppingCart, Check, X, Loader2, MessageSquare,
@@ -40,6 +40,7 @@ type Vendeur = {
 
 export default function BoutiquePage() {
   const params = useParams();
+  const router = useRouter();
   const vendeurId = params.vendeurId as string;
 
   const [articles, setArticles] = useState<Article[]>([]);
@@ -58,6 +59,12 @@ export default function BoutiquePage() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
+  // === Helper : sync commande avec localStorage ===
+  const syncToStorage = (newCommande: CommandeItem[]) => {
+    setCommande(newCommande);
+    localStorage.setItem(`cart_${vendeurId}`, JSON.stringify(newCommande));
+  };
+
   useEffect(() => {
     const fetchBoutique = async () => {
       try {
@@ -66,6 +73,16 @@ export default function BoutiquePage() {
         if (data.success) {
           setArticles(data.data.articles);
           setVendeur(data.data.vendeur);
+          // === LIRE LE PANIER DEPUIS LOCALSTORAGE AU CHARGEMENT ===
+          const stored = localStorage.getItem(`cart_${vendeurId}`);
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (Array.isArray(parsed)) {
+                setCommande(parsed);
+              }
+            } catch {}
+          }
         } else if (data.inactive) {
           setInactive(true);
           setError(data.error || 'Cette boutique est inactive');
@@ -100,22 +117,28 @@ export default function BoutiquePage() {
     });
   }, [articles, search, activeCategory]);
 
+  // === AJOUTER — sync localStorage ===
   const ajouterArticle = (articleId: string) => {
     const existe = commande.find(c => c.articleId === articleId);
+    let newCommande;
     if (existe) {
-      setCommande(commande.map(c => c.articleId === articleId ? { ...c, quantite: c.quantite + 1 } : c));
+      newCommande = commande.map(c => c.articleId === articleId ? { ...c, quantite: c.quantite + 1 } : c);
     } else {
-      setCommande([...commande, { articleId, quantite: 1, note: '' }]);
+      newCommande = [...commande, { articleId, quantite: 1, note: '' }];
     }
+    syncToStorage(newCommande);
   };
 
+  // === RETIRER — sync localStorage ===
   const retirerArticle = (articleId: string) => {
     const existe = commande.find(c => c.articleId === articleId);
+    let newCommande;
     if (existe && existe.quantite > 1) {
-      setCommande(commande.map(c => c.articleId === articleId ? { ...c, quantite: c.quantite - 1 } : c));
+      newCommande = commande.map(c => c.articleId === articleId ? { ...c, quantite: c.quantite - 1 } : c);
     } else {
-      setCommande(commande.filter(c => c.articleId !== articleId));
+      newCommande = commande.filter(c => c.articleId !== articleId);
     }
+    syncToStorage(newCommande);
   };
 
   const getQuantite = (articleId: string) => commande.find(c => c.articleId === articleId)?.quantite || 0;
@@ -127,55 +150,11 @@ export default function BoutiquePage() {
     }, 0);
   };
 
-  const envoyerCommande = async () => {
-    if (!nomClient.trim()) {
-      alert('Veuillez entrer votre nom');
-      return;
-    }
-    setSending(true);
-    try {
-      const res = await fetch('/api/commandes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vendeurId,
-          clientNom: nomClient.trim(),
-          clientTel: telClient.trim() || null,
-          items: commande.map(item => ({
-            articleId: item.articleId,
-            quantite: item.quantite,
-            note: item.note || null,
-          })),
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSent(true);
-        setTimeout(() => {
-          setShowCommande(false);
-          setSent(false);
-          setCommande([]);
-          setNomClient('');
-          setTelClient('');
-        }, 3000);
-      } else {
-        alert(data.error || 'Erreur lors de l\'envoi');
-      }
-    } catch {
-      alert('Erreur de connexion');
-    } finally {
-      setSending(false);
-    }
-  };
+  const getTotalItems = () => commande.reduce((s, c) => s + c.quantite, 0);
 
-  const ouvrirWhatsApp = () => {
-    const texte = commande.map(item => {
-      const article = articles.find(a => a.id === item.articleId);
-      if (!article) return '';
-      return `• ${article.nom} (x${item.quantite}) - ${(article.prixVente * item.quantite).toLocaleString()} FCFA`;
-    }).filter(Boolean).join('\n');
-    const message = `Bonjour ! Je souhaite commander :\n\n${texte}\n\nTotal : ${getTotal().toLocaleString()} FCFA\n\nMerci !`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+  // === ALLER AU PANIER ===
+  const allerAuPanier = () => {
+    router.push(`/boutique/${vendeurId}/panier`);
   };
 
   const contacterVendeuse = () => {
@@ -284,7 +263,7 @@ export default function BoutiquePage() {
             </div>
             <div className="w-px h-8 bg-gray-200" />
             <div className="text-center">
-              <p className="text-lg font-bold" style={{ color: accentColor }}>{commande.reduce((s, c) => s + c.quantite, 0)}</p>
+              <p className="text-lg font-bold" style={{ color: accentColor }}>{getTotalItems()}</p>
               <p className="text-[10px] text-gray-500 uppercase tracking-wide font-medium">Panier</p>
             </div>
             {vendeur.boutiqueWhatsApp && (
@@ -413,85 +392,19 @@ export default function BoutiquePage() {
         )}
       </main>
 
-      {/* === CART BAR === */}
+      {/* === CART BAR — va vers la page panier === */}
       {commande.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
           <div className="max-w-2xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">{commande.reduce((s, c) => s + c.quantite, 0)} article(s)</p>
+                <p className="text-sm text-gray-600">{getTotalItems()} article(s)</p>
                 <p className="text-xl font-bold" style={{ color: accentColor }}>{getTotal().toLocaleString()} FCFA</p>
               </div>
-              <button onClick={() => setShowCommande(true)} className="flex items-center space-x-2 px-6 py-3 rounded-xl text-white font-medium active:scale-95 transition-transform" style={{ backgroundColor: accentColor }}>
-                <ShoppingCart className="h-5 w-5" /><span>Commander</span>
+              <button onClick={allerAuPanier} className="flex items-center space-x-2 px-6 py-3 rounded-xl text-white font-medium active:scale-95 transition-transform" style={{ backgroundColor: accentColor }}>
+                <ShoppingCart className="h-5 w-5" /><span>Voir le panier →</span>
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* === COMMANDE MODAL === */}
-      {showCommande && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => setShowCommande(false)}>
-          <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl p-6 pb-8 sm:pb-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            {sent ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="h-8 w-8 text-green-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Commande envoyée !</h3>
-                <p className="text-gray-500">La vendeuse vous contactera bientôt.</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Ma commande</h3>
-                  <button onClick={() => setShowCommande(false)} className="p-1 text-gray-400 hover:text-gray-700"><X className="h-5 w-5" /></button>
-                </div>
-                <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
-                  {commande.map(item => {
-                    const article = articles.find(a => a.id === item.articleId);
-                    if (!article) return null;
-                    return (
-                      <div key={item.articleId} className="flex items-center justify-between py-2 border-b border-gray-100">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{article.nom}</p>
-                          <p className="text-xs text-gray-500">x{item.quantite} • {article.prixVente.toLocaleString()} FCFA/u</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => retirerArticle(item.articleId)} className="w-6 h-6 rounded text-gray-500 hover:text-red-600">−</button>
-                          <span className="font-semibold text-sm w-6 text-center">{item.quantite}</span>
-                          <button onClick={() => ajouterArticle(item.articleId)} className="w-6 h-6 rounded text-gray-500 hover:text-green-600">+</button>
-                          <p className="font-semibold text-sm ml-2 w-20 text-right">{(article.prixVente * item.quantite).toLocaleString()} FCFA</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center justify-between py-3 border-t font-bold text-lg">
-                  <span>Total</span>
-                  <span style={{ color: accentColor }}>{getTotal().toLocaleString()} FCFA</span>
-                </div>
-                <div className="space-y-3 mb-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Votre nom *</label>
-                    <input type="text" value={nomClient} onChange={(e) => setNomClient(e.target.value)} placeholder="Ex: Aminata Traoré" className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Téléphone WhatsApp (optionnel)</label>
-                    <input type="tel" value={telClient} onChange={(e) => setTelClient(e.target.value)} placeholder="+226 70 12 34 56" className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 outline-none" />
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <button onClick={envoyerCommande} disabled={sending || !nomClient.trim()} className="w-full py-3 rounded-xl text-white font-medium flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-95 transition-transform" style={{ backgroundColor: accentColor }}>
-                    {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="h-5 w-5" /><span>Confirmer la commande</span></>}
-                  </button>
-                  <button onClick={ouvrirWhatsApp} className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium flex items-center justify-center space-x-2 active:scale-95 transition-transform">
-                    <MessageSquare className="h-5 w-5" /><span>Envoyer par WhatsApp</span>
-                  </button>
-                </div>
-              </>
-            )}
           </div>
         </div>
       )}
