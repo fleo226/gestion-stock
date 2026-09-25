@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Copy, Check, MessageCircle, Loader2, Package } from 'lucide-react';
+import { Copy, Check, MessageCircle, Loader2, Package, Phone } from 'lucide-react';
 
 type Commande = {
   id: string;
@@ -89,12 +89,28 @@ export default function PaiementPage() {
   }
 
   const isMarchand = vendeur.orangeMoneyType === 'MARCHAND';
-  const ussdCode = isMarchand ? '*144*10#' : '*144*2*1#';
-  const omCode = vendeur.orangeMoneyCodeMarchand || '';
-  const omNumero = vendeur.orangeMoneyNumero || '';
-  const omNom = vendeur.orangeMoneyNomAffichage || vendeur.boutiqueNom;
-  const total = commande.total.toLocaleString();
+  const total = commande.total;
+  const totalStr = String(total);
   const ref = commande.reference;
+
+  // Nettoyer le numéro (garder que les chiffres, max 8 derniers)
+  const cleanNumero = (vendeur.orangeMoneyNumero || '').replace(/[^\d]/g, '').slice(-8);
+  const cleanCode = (vendeur.orangeMoneyCodeMarchand || '').replace(/[^\d]/g, '');
+
+  // === Code USSD complet auto-composé ===
+  // Marchand : *144*10*CODE*MONTANT#
+  // Particulier : *144*2*1*NUMERO*MONTANT#
+  const ussdComplet = isMarchand
+    ? `*144*10*${cleanCode}*${totalStr}`
+    : `*144*2*1*${cleanNumero}*${totalStr}`;
+  
+  // Lien tel: (%23 = # encodé)
+  const telLink = `tel:${ussdComplet}%23`;
+
+  // Code USSD simple (sans auto-compose)
+  const ussdSimple = isMarchand ? '*144*10#' : '*144*2*1#';
+
+  const omNom = vendeur.orangeMoneyNomAffichage || vendeur.boutiqueNom;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -103,7 +119,7 @@ export default function PaiementPage() {
         <div className="max-w-2xl mx-auto px-4 pt-4 pb-5 text-white">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center font-black text-xs text-white">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white" style={{ backgroundColor: '#000' }}>
                 OM
               </div>
               <div>
@@ -117,7 +133,7 @@ export default function PaiementPage() {
           {/* Montant */}
           <div className="bg-black/15 p-3 rounded-xl text-center border border-white/20">
             <p className="text-[10px] uppercase font-bold text-orange-100">Montant exact à payer</p>
-            <p className="text-2xl font-black tracking-tight text-white mt-0.5">{total} FCFA</p>
+            <p className="text-2xl font-black tracking-tight text-white mt-0.5">{total.toLocaleString()} FCFA</p>
             <div className="inline-flex items-center gap-1.5 mt-2 bg-white/20 px-2.5 py-1 rounded-full text-[10px]">
               <span>Réf : <strong className="font-mono">{ref}</strong></span>
               <button onClick={() => copyToClipboard(ref, 'ref')} className="text-[9px] underline font-bold">
@@ -128,24 +144,38 @@ export default function PaiementPage() {
         </div>
       </div>
 
-      {/* === Instructions === */}
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+      {/* === Bouton auto-compose (GROS, en premier) === */}
+      <div className="max-w-2xl mx-auto px-4 -mt-3 relative z-10 mb-4">
+        <a
+          href={telLink}
+          className="block w-full bg-white border-2 border-orange-400 rounded-2xl p-4 text-center shadow-md active:scale-95 transition"
+        >
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Phone className="h-5 w-5 text-orange-500" />
+            <span className="font-bold text-sm text-gray-900">Composez automatiquement</span>
+          </div>
+          <p className="text-lg font-bold font-mono text-orange-600 tracking-wider">{ussdComplet}#</p>
+          <p className="text-[10px] text-gray-500 mt-1">Cliquez pour ouvrir le téléphone avec le code déjà composé</p>
+        </a>
+      </div>
+
+      {/* === Instructions détaillées === */}
+      <div className="max-w-2xl mx-auto px-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-wide text-gray-800">Instructions de paiement</h2>
-          <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
-            USSD Direct
-          </span>
+          <h2 className="text-xs font-bold uppercase tracking-wide text-gray-800">Instructions détaillées</h2>
+          <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">USSD</span>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3 shadow-sm">
-          {/* Étape 1 : Code USSD */}
+          {/* Étape 1 */}
           <div className="flex items-start gap-2.5">
             <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 font-bold text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
             <div className="flex-1">
               <p className="text-xs text-gray-600 mb-1">Composez sur votre téléphone :</p>
               <div className="bg-gray-100 border border-gray-300 rounded-lg p-2 text-center font-mono font-bold text-sm text-gray-900 tracking-wider">
-                {ussdCode}
+                {ussdSimple}
               </div>
+              <p className="text-[10px] text-gray-400 mt-1">Ou cliquez le bouton orange ci-dessus pour composer automatiquement</p>
             </div>
           </div>
 
@@ -162,13 +192,13 @@ export default function PaiementPage() {
             <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 font-bold text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5">{isMarchand ? 3 : 2}</span>
             <div className="flex-1 flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg px-2.5 py-1.5">
               <span className="text-xs text-gray-700">
-                {isMarchand ? `Code marchand : ` : `Numéro : `}
+                {isMarchand ? `Code marchand : ` : `Numéro destinataire : `}
                 <strong className="font-mono font-bold text-gray-900">
-                  {isMarchand ? omCode || '______' : omNumero || '+226 __ __ __ __'}
+                  {isMarchand ? (cleanCode || '______') : (cleanNumero || '________')}
                 </strong>
               </span>
               <button
-                onClick={() => copyToClipboard(isMarchand ? omCode : omNumero, 'code')}
+                onClick={() => copyToClipboard(isMarchand ? cleanCode : cleanNumero, 'code')}
                 className="text-[10px] bg-orange-600 text-white font-bold px-2 py-1 rounded hover:bg-orange-700 flex items-center gap-1"
               >
                 {copied === 'code' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
@@ -180,7 +210,7 @@ export default function PaiementPage() {
           {/* Étape 4 : Montant */}
           <div className="flex items-start gap-2.5">
             <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 font-bold text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5">{isMarchand ? 4 : 3}</span>
-            <p className="text-xs text-gray-700 pt-0.5">Entrez le montant : <strong className="text-orange-600 font-bold">{total} FCFA</strong></p>
+            <p className="text-xs text-gray-700 pt-0.5">Entrez le montant : <strong className="text-orange-600 font-bold">{total.toLocaleString()} FCFA</strong></p>
           </div>
 
           {/* Étape 5 : Référence */}
@@ -209,7 +239,7 @@ export default function PaiementPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-xs">
           <div className="flex justify-between items-center border-b border-gray-100 pb-2 mb-2">
             <span className="text-gray-600">Articles commandés ({commande.lignes.length})</span>
-            <span className="font-bold text-gray-900">{total} FCFA</span>
+            <span className="font-bold text-gray-900">{total.toLocaleString()} FCFA</span>
           </div>
           {commande.lignes.map((ligne, i) => (
             <div key={i} className="flex justify-between text-[11px] text-gray-500 mb-1">
