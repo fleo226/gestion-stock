@@ -63,7 +63,10 @@ export default function PaiementPage() {
   };
 
   const envoyerPreuveWhatsApp = () => {
-    if (!vendeur?.boutiqueWhatsApp) return;
+    if (!vendeur?.boutiqueWhatsApp) {
+      alert('La vendeuse n\'a pas encore configuré son numéro WhatsApp. Contactez-la directement.');
+      return;
+    }
     const msg = `Bonjour ${vendeur.boutiqueNom} ! J'ai payé ma commande ${commande?.reference} de ${commande?.total.toLocaleString()} FCFA via Orange Money. Merci de vérifier et confirmer.`;
     const url = `https://wa.me/${vendeur.boutiqueWhatsApp.replace(/[^\d]/g, '')}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
@@ -93,23 +96,15 @@ export default function PaiementPage() {
   const totalStr = String(total);
   const ref = commande.reference;
 
-  // Nettoyer le numéro (garder que les chiffres, max 8 derniers)
   const cleanNumero = (vendeur.orangeMoneyNumero || '').replace(/[^\d]/g, '').slice(-8);
   const cleanCode = (vendeur.orangeMoneyCodeMarchand || '').replace(/[^\d]/g, '');
 
-  // === Code USSD complet auto-composé ===
-  // Marchand : *144*10*CODE*MONTANT#
-  // Particulier : *144*2*1*NUMERO*MONTANT#
   const ussdComplet = isMarchand
     ? `*144*10*${cleanCode}*${totalStr}`
     : `*144*2*1*${cleanNumero}*${totalStr}`;
-  
-  // Lien tel: (%23 = # encodé)
+
   const telLink = `tel:${ussdComplet}%23`;
-
-  // Code USSD simple (sans auto-compose)
   const ussdSimple = isMarchand ? '*144*10#' : '*144*2*1#';
-
   const omNom = vendeur.orangeMoneyNomAffichage || vendeur.boutiqueNom;
 
   return (
@@ -144,7 +139,7 @@ export default function PaiementPage() {
         </div>
       </div>
 
-      {/* === Bouton auto-compose (GROS, en premier) === */}
+      {/* === Bouton auto-compose === */}
       <div className="max-w-2xl mx-auto px-4 -mt-3 relative z-10 mb-4">
         <a
           href={telLink}
