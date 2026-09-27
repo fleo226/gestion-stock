@@ -72,7 +72,6 @@ export async function GET(
           nom: a.nom,
           taille: a.taille,
           couleur: a.couleur,
-          prixAchat: a.prixAchat,
           prixVente: a.prixVente,
           quantite: a.quantite,
           unite: a.unite,
