@@ -75,6 +75,7 @@ export default function StockPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [validatingCommande, setValidatingCommande] = useState<string | null>(null);
+  const [cancellingCommande, setCancellingCommande] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const fetchData = async () => {
@@ -133,7 +134,7 @@ export default function StockPage() {
   };
 
   const validateCommande = async (commandeId: string) => {
-    if (!confirm('Confirmer le paiement et valider cette commande ? Le stock sera décrémenté.')) return;
+    if (!confirm('Confirmer la réception du paiement et valider cette commande ?')) return;
     setValidatingCommande(commandeId);
     try {
       const res = await fetch('/api/commandes', {
@@ -152,6 +153,29 @@ export default function StockPage() {
       alert('Erreur de connexion');
     } finally {
       setValidatingCommande(null);
+    }
+  };
+
+  const cancelCommande = async (commandeId: string) => {
+    if (!confirm('Annuler cette commande ? Le stock réservé sera restitué.')) return;
+    setCancellingCommande(commandeId);
+    try {
+      const res = await fetch('/api/commandes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'annuler', commandeId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchCommandes();
+        fetchData();
+      } else {
+        alert(data.error || "Erreur lors de l'annulation");
+      }
+    } catch {
+      alert('Erreur de connexion');
+    } finally {
+      setCancellingCommande(null);
     }
   };
 
@@ -456,6 +480,8 @@ export default function StockPage() {
             loading={activeTab === 'commandes' && commandes.length === 0 && !loading}
             onValidate={validateCommande}
             validatingId={validatingCommande}
+            onAnnuler={cancelCommande}
+            cancellingId={cancellingCommande}
             accentColor={accentColor}
             formatPrice={formatPrice}
             formatDate={formatDate}
@@ -489,12 +515,14 @@ interface CommandesTabProps {
   loading: boolean;
   onValidate: (id: string) => void;
   validatingId: string | null;
+  onAnnuler: (id: string) => void;
+  cancellingId: string | null;
   accentColor: string;
   formatPrice: (price: number) => string;
   formatDate: (dateStr: string) => string;
 }
 
-function CommandesTab({ commandes, loading, onValidate, validatingId, accentColor, formatPrice, formatDate }: CommandesTabProps) {
+function CommandesTab({ commandes, loading, onValidate, validatingId, onAnnuler, cancellingId, accentColor, formatPrice, formatDate }: CommandesTabProps) {
   const router = useRouter();
   const [user, setUser] = useState<VendeurInfo | null>(null);
 
@@ -613,6 +641,22 @@ function CommandesTab({ commandes, loading, onValidate, validatingId, accentColo
                       ID transaction: {commande.referencePaiement}
                     </p>
                   )}
+                </div>
+              )}
+
+              {(commande.statut === 'EN_ATTENTE_PAIEMENT' || commande.statut === 'EN_ATTENTE_VALIDATION') && (
+                <div className="mt-3 flex items-center justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAnnuler(commande.id)}
+                    disabled={cancellingId === commande.id}
+                    loading={cancellingId === commande.id}
+                    className="!border-red-200 !text-red-600 hover:!bg-red-50"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    <span>Annuler la commande</span>
+                  </Button>
                 </div>
               )}
 
