@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, dbDirect } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 
 // === GET : liste des commandes du vendeur connecté ===
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier le stock + calculer le total
     let total = 0;
-    const validatedItems = [];
+    const validatedItems: { articleId: string; quantite: number; prixUnitaire: number }[] = [];
 
     for (const item of articlesDemandes) {
       const article = await db.article.findUnique({ where: { id: item.articleId } });
@@ -139,49 +139,79 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // === Créer la Commande en DB ===
-    const commande = await db.commande.create({
-      data: {
-        vendeurId,
-        clientNom: clientNom.trim(),
-        clientTelephone: clientTel?.trim() || null,
-        clientAdresse: clientAdresse?.trim() || null,
-        clientNote: clientNote?.trim() || null,
-        total,
-        statut: 'EN_ATTENTE_PAIEMENT',
-        lignes: {
-          create: validatedItems.map(item => ({
-            articleId: item.articleId,
-            quantite: item.quantite,
-            prixUnitaire: item.prixUnitaire,
-          })),
-        },
-      },
-    });
-
-    // === Décrémenter le stock + créer les mouvements SORTIE ===
-    for (const item of validatedItems) {
-      const article = await db.article.findUnique({ where: { id: item.articleId } });
-      if (article) {
-        await db.mouvement.create({
+    // === Créer la commande + décrémenter le stock atomiquement (audit B3) ===
+    // Transaction interactive sur la connexion en mode SESSION (dbDirect) :
+    // si un article n'a plus le stock requis au moment de l'écriture,
+    // TOUT est annulé (commande, lignes, décréments déjà faits).
+    let commandeId: string;
+    try {
+      const commande = await dbDirect.$transaction(async (tx) => {
+        const created = await tx.commande.create({
           data: {
-            articleId: item.articleId,
-            type: 'SORTIE',
-            quantite: item.quantite,
-            prixUnitaire: item.prixUnitaire,
-            note: `Commande ${commande.id.slice(0, 8).toUpperCase()} : ${clientNom}${clientTel ? ` (${clientTel})` : ''}`,
+            vendeurId,
+            clientNom: clientNom.trim(),
+            clientTelephone: clientTel?.trim() || null,
+            clientAdresse: clientAdresse?.trim() || null,
+            clientNote: clientNote?.trim() || null,
+            total,
+            statut: 'EN_ATTENTE_PAIEMENT',
+            lignes: {
+              create: validatedItems.map(item => ({
+                articleId: item.articleId,
+                quantite: item.quantite,
+                prixUnitaire: item.prixUnitaire,
+              })),
+            },
           },
         });
-        await db.article.update({
-          where: { id: item.articleId },
-          data: { quantite: article.quantite - item.quantite },
+
+        for (const item of validatedItems) {
+          // Décrément conditionnel atomique : la garde quantite >= qte est
+          // évaluée par la base au moment de l'écriture. count === 0 =>
+          // stock parti entre la vérification et l'écriture → rollback.
+          const res = await tx.article.updateMany({
+            where: { id: item.articleId, quantite: { gte: item.quantite } },
+            data: { quantite: { decrement: item.quantite } },
+          });
+          if (res.count === 0) {
+            throw new Error(`STOCK_INSUFFISANT:${item.articleId}`);
+          }
+        }
+
+        for (const item of validatedItems) {
+          await tx.mouvement.create({
+            data: {
+              articleId: item.articleId,
+              type: 'SORTIE',
+              quantite: item.quantite,
+              prixUnitaire: item.prixUnitaire,
+              note: `Commande ${created.id.slice(0, 8).toUpperCase()} : ${clientNom}${clientTel ? ` (${clientTel})` : ''}`,
+            },
+          });
+        }
+
+        return created;
+      });
+      commandeId = commande.id;
+    } catch (txError) {
+      const msg = txError instanceof Error ? txError.message : '';
+      const match = msg.match(/STOCK_INSUFFISANT:(.+)/);
+      if (match) {
+        const nom = await db.article.findUnique({
+          where: { id: match[1] },
+          select: { nom: true, quantite: true },
         });
+        return NextResponse.json(
+          { error: `Stock insuffisant pour ${nom?.nom ?? 'un article'} (disponible: ${nom?.quantite ?? 0})` },
+          { status: 409 }
+        );
       }
+      throw txError;
     }
 
     return NextResponse.json({
       success: true,
-      data: { id: commande.id },
+      data: { id: commandeId },
     });
   } catch (error) {
     console.error('Erreur POST commandes:', error);
