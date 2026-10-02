@@ -215,6 +215,13 @@ export async function entreeArticle(articleId: string, quantite: number, prixUni
 
   const qte = Math.max(1, Math.round(quantite));
 
+  // Incrément atomique (audit B3) : plus de lecture puis écriture qui
+  // écrase les entrées simultanées.
+  await db.article.update({
+    where: { id: articleId },
+    data: { quantite: { increment: qte } },
+  });
+
   await db.mouvement.create({
     data: {
       articleId,
@@ -223,11 +230,6 @@ export async function entreeArticle(articleId: string, quantite: number, prixUni
       prixUnitaire: Math.round(prixUnitaire),
       note: note?.trim() || null,
     },
-  });
-
-  await db.article.update({
-    where: { id: articleId },
-    data: { quantite: article.quantite + qte },
   });
 
   revalidatePath("/");
@@ -248,6 +250,17 @@ export async function sortieArticle(articleId: string, quantite: number, prixUni
     return { error: `Stock insuffisant. Disponible : ${article.quantite}` };
   }
 
+  // Décrément atomique conditionnel (audit B3) : la garde quantite >= qte
+  // est évaluée par la base au moment de l'écriture — deux sorties
+  // simultanées ne peuvent pas dépasser le stock disponible.
+  const res = await db.article.updateMany({
+    where: { id: articleId, quantite: { gte: qte } },
+    data: { quantite: { decrement: qte } },
+  });
+  if (res.count === 0) {
+    return { error: `Stock insuffisant. Disponible : ${article.quantite}` };
+  }
+
   await db.mouvement.create({
     data: {
       articleId,
@@ -256,11 +269,6 @@ export async function sortieArticle(articleId: string, quantite: number, prixUni
       prixUnitaire: Math.round(prixUnitaire),
       note: note?.trim() || null,
     },
-  });
-
-  await db.article.update({
-    where: { id: articleId },
-    data: { quantite: article.quantite - qte },
   });
 
   revalidatePath("/");
