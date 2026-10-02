@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { cookies } from 'next/headers';
+import { getSessionUser } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,12 +9,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Question requise' }, { status: 400 });
     }
 
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('userId')?.value;
-    if (!userId) {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
-
+    const userId = sessionUser.id;
     const user = await db.user.findUnique({ where: { id: userId } });
     if (!user) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });

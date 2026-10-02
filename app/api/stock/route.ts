@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { 
+import { getSessionUser } from '@/lib/auth';
+import {
   getArticles, 
   creerArticle, 
   modifierArticle, 
@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
 }
 
 async function getUserIdFromCookie(): Promise<string | null> {
-  const cookieStore = await cookies();
-  return cookieStore.get('userId')?.value ?? null;
+  const user = await getSessionUser();
+  return user?.id ?? null;
 }
 
 export async function POST(request: NextRequest) {

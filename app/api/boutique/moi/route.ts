@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { cookies } from 'next/headers';
+import { getSessionUser } from '@/lib/auth';
 
 // =====================================================
 // API /api/boutique/moi
@@ -8,10 +8,10 @@ import { cookies } from 'next/headers';
 // PATCH : Met à jour les infos boutique + Orange Money
 // =====================================================
 
-// Helper : récupère l'userId depuis le cookie
+// Helper : résout l'utilisateur via la session signée
 async function getUserIdFromCookie(): Promise<string | null> {
-  const cookieStore = await cookies();
-  return cookieStore.get('userId')?.value ?? null;
+  const user = await getSessionUser();
+  return user?.id ?? null;
 }
 
 // === GET ===

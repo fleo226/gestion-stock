@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { cookies } from 'next/headers';
+import { getSessionUser } from '@/lib/auth';
 
 // === GET : liste des commandes du vendeur connecté ===
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('userId')?.value;
-    if (!userId) {
+    const user = await getSessionUser();
+    if (!user) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
     const commandes = await db.commande.findMany({
-      where: { vendeurId: userId },
+      where: { vendeurId: user.id },
       include: {
         lignes: {
           include: {
@@ -42,14 +41,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'ID commande requis' }, { status: 400 });
       }
 
-      const cookieStore = await cookies();
-      const userId = cookieStore.get('userId')?.value;
-      if (!userId) {
+      const user = await getSessionUser();
+      if (!user) {
         return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
       }
 
       const commande = await db.commande.findFirst({
-        where: { id: commandeId, vendeurId: userId },
+        where: { id: commandeId, vendeurId: user.id },
       });
       if (!commande) {
         return NextResponse.json({ error: 'Commande introuvable' }, { status: 404 });
