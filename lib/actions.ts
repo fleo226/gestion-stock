@@ -198,9 +198,35 @@ export async function supprimerArticle(id: string) {
   const article = await db.article.findFirst({ where: { id, userId } });
   if (!article) return { error: "Article introuvable" };
 
+  // Audit B8 : un article présent dans une commande ne peut pas être
+  // supprimé (l'historique des ventes doit être conservé). La
+  // désactivation le masque du catalogue sans toucher à l'historique.
+  const commandes = await db.commandeLigne.count({ where: { articleId: id } });
+  if (commandes > 0) {
+    return {
+      error: `Impossible de supprimer : cet article apparaît dans ${commandes} commande(s). Désactivez-le plutôt — il sera masqué de la boutique et de la caisse, et son historique sera conservé.`,
+    };
+  }
+
   await db.article.delete({ where: { id } });
   revalidatePath("/");
   revalidatePath("/stock");
+  return { success: true };
+}
+
+// Audit B8 : active/désactive un article (masqué de la boutique et de la
+// caisse quand inactif, historique conservé).
+export async function definirActif(articleId: string, actif: boolean) {
+  const userId = await getUserId();
+  if (!userId) return { error: "Non connecté" };
+
+  const article = await db.article.findFirst({ where: { id: articleId, userId } });
+  if (!article) return { error: "Article introuvable" };
+
+  await db.article.update({ where: { id: articleId }, data: { actif } });
+  revalidatePath("/");
+  revalidatePath("/stock");
+  revalidatePath(`/article/${articleId}`);
   return { success: true };
 }
 

@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import {
-  getArticles, 
-  creerArticle, 
-  modifierArticle, 
+  getArticles,
+  creerArticle,
+  modifierArticle,
   supprimerArticle,
   entreeArticle,
   sortieArticle,
   getArticle,
   getStatistiques,
-  getUtilisateur
+  getUtilisateur,
+  definirActif
 } from '@/lib/actions';
 import { db } from '@/lib/db';
 
@@ -100,6 +101,16 @@ export async function POST(request: NextRequest) {
         const { articleId, quantite, prixUnitaire, note } = data;
         if (!articleId || !quantite) return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 });
         const result = await sortieArticle(articleId, quantite, prixUnitaire, note);
+        if (result.error) {
+          return NextResponse.json({ error: result.error }, { status: 400 });
+        }
+        return NextResponse.json(result);
+      }
+
+      case 'set-actif': {
+        const { articleId, actif } = data;
+        if (!articleId || typeof actif !== 'boolean') return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 });
+        const result = await definirActif(articleId, actif);
         if (result.error) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }

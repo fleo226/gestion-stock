@@ -49,6 +49,7 @@ export async function GET(
       where: {
         userId: vendeurId,
         quantite: { gt: 0 },
+        actif: true,
       },
       include: { categorie: true },
       orderBy: { creeLe: 'desc' },

@@ -54,6 +54,7 @@ model Article {
   quantite       Int             @default(0)
   unite          String          @default("pièce")
   photoUrl       String?
+  actif          Boolean         @default(true)
   creeLe         DateTime        @default(now())
   userId         String
   categorieId    String?
