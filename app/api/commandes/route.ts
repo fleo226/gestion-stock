@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, getDbDirect } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
+import { annulerCommande, expirerCommandesPerimees } from '@/lib/commandes';
 
 // === GET : liste des commandes du vendeur connecté ===
 export async function GET() {
@@ -9,6 +10,9 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
+
+    // Audit B1 : les commandes non payées depuis plus de 2h libèrent le stock
+    await expirerCommandesPerimees();
 
     const commandes = await db.commande.findMany({
       where: { vendeurId: user.id },
@@ -29,7 +33,7 @@ export async function GET() {
   }
 }
 
-// === POST : créer OU valider une commande ===
+// === POST : créer / valider / annuler / déclarer un paiement ===
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -52,12 +56,70 @@ export async function POST(request: NextRequest) {
       if (!commande) {
         return NextResponse.json({ error: 'Commande introuvable' }, { status: 404 });
       }
+      // Audit B6 : on ne valide que ce qui est en attente de validation/paiement
+      if (commande.statut !== 'EN_ATTENTE_VALIDATION' && commande.statut !== 'EN_ATTENTE_PAIEMENT') {
+        return NextResponse.json(
+          { error: `Cette commande est déjà ${commande.statut === 'CONFIRMEE' ? 'confirmée' : 'annulée'}` },
+          { status: 409 }
+        );
+      }
 
       await db.commande.update({
         where: { id: commandeId },
         data: {
           statut: 'CONFIRMEE',
           valideeLe: new Date(),
+        },
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    // === Action: annuler une commande (côté vendeur, audit B1) ===
+    if (body.action === 'annuler') {
+      const { commandeId } = body;
+      if (!commandeId) {
+        return NextResponse.json({ error: 'ID commande requis' }, { status: 400 });
+      }
+
+      const user = await getSessionUser();
+      if (!user) {
+        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      }
+
+      const res = await annulerCommande(commandeId, user.id, 'vendeuse');
+      if (res.error) {
+        return NextResponse.json({ error: res.error }, { status: res.status });
+      }
+      return NextResponse.json({ success: true });
+    }
+
+    // === Action: la cliente déclare son paiement Orange Money (audit B2) ===
+    if (body.action === 'declare-payment') {
+      const { commandeId, reference } = body;
+      if (!commandeId || !reference?.trim()) {
+        return NextResponse.json(
+          { error: "ID commande et référence de transaction requis" },
+          { status: 400 }
+        );
+      }
+
+      const commande = await db.commande.findUnique({ where: { id: commandeId } });
+      if (!commande) {
+        return NextResponse.json({ error: 'Commande introuvable' }, { status: 404 });
+      }
+      if (commande.statut !== 'EN_ATTENTE_PAIEMENT') {
+        return NextResponse.json(
+          { error: "Cette commande n'est plus en attente de paiement" },
+          { status: 409 }
+        );
+      }
+
+      await db.commande.update({
+        where: { id: commandeId },
+        data: {
+          statut: 'EN_ATTENTE_VALIDATION',
+          referencePaiement: reference.trim().slice(0, 100),
         },
       });
 

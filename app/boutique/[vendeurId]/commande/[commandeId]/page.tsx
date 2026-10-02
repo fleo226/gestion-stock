@@ -33,26 +33,60 @@ export default function PaiementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
+  const [refTransaction, setRefTransaction] = useState('');
+  const [declaring, setDeclaring] = useState(false);
+  const [declareError, setDeclareError] = useState('');
+  const [declared, setDeclared] = useState(false);
+
+  const fetchCommande = async () => {
+    try {
+      const res = await fetch(`/api/boutique/${vendeurId}/commande/${commandeId}`);
+      const data = await res.json();
+      if (data.success) {
+        setCommande(data.data.commande);
+        setVendeur(data.data.vendeur);
+      } else {
+        setError(data.error || 'Commande introuvable');
+      }
+    } catch {
+      setError('Erreur de connexion');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchCommande = async () => {
-      try {
-        const res = await fetch(`/api/boutique/${vendeurId}/commande/${commandeId}`);
-        const data = await res.json();
-        if (data.success) {
-          setCommande(data.data.commande);
-          setVendeur(data.data.vendeur);
-        } else {
-          setError(data.error || 'Commande introuvable');
-        }
-      } catch {
-        setError('Erreur de connexion');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchCommande();
   }, [vendeurId, commandeId]);
+
+  // Audit B2 : la cliente déclare son paiement dans l'app — la commande
+  // passe en EN_ATTENTE_VALIDATION et la vendeuse voit la référence.
+  const declarerPaiement = async () => {
+    if (!refTransaction.trim()) {
+      setDeclareError("Entrez l'ID de la transaction reçu par SMS après votre paiement.");
+      return;
+    }
+    setDeclaring(true);
+    setDeclareError('');
+    try {
+      const res = await fetch('/api/commandes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'declare-payment', commandeId, reference: refTransaction.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDeclared(true);
+        fetchCommande();
+      } else {
+        setDeclareError(data.error || 'Erreur lors de la déclaration');
+      }
+    } catch {
+      setDeclareError('Erreur de connexion');
+    } finally {
+      setDeclaring(false);
+    }
+  };
 
   const copyToClipboard = async (text: string, key: string) => {
     try {
@@ -243,6 +277,36 @@ export default function PaiementPage() {
             </div>
           ))}
         </div>
+
+        {/* === Audit B2 : déclaration de paiement dans l'app === */}
+        {commande.statut === 'EN_ATTENTE_PAIEMENT' && !declared && (
+          <div className="bg-white rounded-xl border-2 border-orange-300 p-4 space-y-2.5 shadow-sm">
+            <p className="text-sm font-bold text-gray-900">Vous avez payé ? Déclarez-le ici</p>
+            <p className="text-[11px] text-gray-500">
+              Saisissez l'ID de la transaction Orange Money reçu par SMS, puis la vendeuse vérifiera votre paiement.
+            </p>
+            <input
+              value={refTransaction}
+              onChange={(e) => setRefTransaction(e.target.value)}
+              placeholder="Ex : MP240917.1234.A12345"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm font-mono outline-none focus:ring-2 focus:ring-orange-400"
+            />
+            {declareError && <p className="text-[11px] text-red-600 font-medium">{declareError}</p>}
+            <button
+              onClick={declarerPaiement}
+              disabled={declaring || !refTransaction.trim()}
+              className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 active:scale-95 transition"
+            >
+              {declaring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              <span>J'ai payé — Notifier la vendeuse</span>
+            </button>
+          </div>
+        )}
+        {(declared || commande.statut === 'EN_ATTENTE_VALIDATION') && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-800 font-semibold text-center">
+            Paiement déclaré ! La vendeuse vérifie votre transaction.
+          </div>
+        )}
       </div>
 
       {/* === Sticky bottom : WhatsApp === */}
