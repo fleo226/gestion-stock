@@ -13,14 +13,24 @@ export const db = globalForPrisma.prisma ?? new PrismaClient({
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
 
 // Client dédié aux transactions interactives (audit B3) : Prisma exige une
-// connexion dédiée pour $transaction ; à travers un pooler en mode
+// connexion épinglée pour $transaction ; à travers un pooler en mode
 // transaction, les requêtes d'une même transaction peuvent changer de
 // connexion et casser l'atomicité. DATABASE_URL_DIRECT pointe vers le
-// pooler en mode SESSION (5432), qui épingle la connexion : les
-// transactions y sont fiables.
-export const dbDirect = globalForPrisma.prismaDirect ?? new PrismaClient({
-  datasources: { db: { url: process.env.DATABASE_URL_DIRECT } },
-  log: ['error'],
-});
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prismaDirect = dbDirect;
+// pooler en mode SESSION (5432) qui garantit cette épinglage.
+// Construction paresseuse : le module reste importable au build sans
+// variable d'environnement, l'erreur ne survient qu'à l'usage réel.
+export function getDbDirect(): PrismaClient {
+  if (!globalForPrisma.prismaDirect) {
+    const url = process.env.DATABASE_URL_DIRECT;
+    if (!url || !/^postgres(ql)?:\/\//.test(url)) {
+      throw new Error(
+        'DATABASE_URL_DIRECT manquante ou invalide : requise pour les transactions (pooler en mode session, ex. postgresql://…@…pooler.supabase.com:5432/postgres)'
+      );
+    }
+    globalForPrisma.prismaDirect = new PrismaClient({
+      datasources: { db: { url } },
+      log: ['error'],
+    });
+  }
+  return globalForPrisma.prismaDirect;
+}

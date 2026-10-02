@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, dbDirect } from '@/lib/db';
+import { db, getDbDirect } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 
 // === GET : liste des commandes du vendeur connecté ===
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     // TOUT est annulé (commande, lignes, décréments déjà faits).
     let commandeId: string;
     try {
-      const commande = await dbDirect.$transaction(async (tx) => {
+      const commande = await getDbDirect().$transaction(async (tx) => {
         const created = await tx.commande.create({
           data: {
             vendeurId,
