@@ -73,6 +73,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Données manquantes' }, { status: 400 });
     }
 
+    // === Validation des quantités (audit B4) ===
+    // Chaque quantité doit être un entier entre 1 et 999. Les doublons
+    // d'articles sont agrégés pour que le contrôle de stock porte sur
+    // la quantité totale demandée, ligne par ligne et article par article.
+    if (!Array.isArray(items) || items.length > 50) {
+      return NextResponse.json({ error: 'Panier invalide (50 articles maximum)' }, { status: 400 });
+    }
+    const quantitesParArticle = new Map<string, number>();
+    for (const item of items) {
+      if (
+        !item ||
+        typeof item.articleId !== 'string' ||
+        !Number.isInteger(item.quantite) ||
+        item.quantite < 1 ||
+        item.quantite > 999
+      ) {
+        return NextResponse.json(
+          { error: 'Quantité invalide : un nombre entier entre 1 et 999 est requis pour chaque article' },
+          { status: 400 }
+        );
+      }
+      quantitesParArticle.set(item.articleId, (quantitesParArticle.get(item.articleId) || 0) + item.quantite);
+    }
+    for (const quantite of quantitesParArticle.values()) {
+      if (quantite > 999) {
+        return NextResponse.json(
+          { error: 'Quantité cumulée invalide : 999 maximum par article' },
+          { status: 400 }
+        );
+      }
+    }
+    const articlesDemandes = Array.from(quantitesParArticle.entries()).map(([articleId, quantite]) => ({
+      articleId,
+      quantite,
+    }));
+
     // Vérifier que le vendeur existe
     const vendeur = await db.user.findUnique({ where: { id: vendeurId } });
     if (!vendeur) {
@@ -83,7 +119,7 @@ export async function POST(request: NextRequest) {
     let total = 0;
     const validatedItems = [];
 
-    for (const item of items) {
+    for (const item of articlesDemandes) {
       const article = await db.article.findUnique({ where: { id: item.articleId } });
       if (!article) {
         return NextResponse.json({ error: `Article introuvable` }, { status: 404 });
