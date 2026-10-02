@@ -2,7 +2,7 @@
 
 import { db } from "./db";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { getSessionUser, setSessionCookie, clearSessionCookie } from "./auth";
 
 // ============== TYPES ==============
 
@@ -64,9 +64,8 @@ function enrichir(article: any): ArticleAvecVentes {
 }
 
 async function getUserId(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
-  return userId ?? null;
+  const user = await getSessionUser();
+  return user?.id ?? null;
 }
 
 // ============== AUTH ==============
@@ -81,13 +80,7 @@ export async function creerCompte(email: string, password: string, nom: string) 
   const user = await db.user.create({
     data: { email, passwordHash, nom: nom.trim() },
   });
-  const cookieStore = await cookies();
-  cookieStore.set("userId", user.id, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30, // 30 jours
-  });
+  await setSessionCookie(user.id);
   return { success: true, user: { id: user.id, email: user.email, nom: user.nom, couleur: user.couleur } };
 }
 
@@ -97,27 +90,17 @@ export async function connecter(email: string, password: string) {
   if (!user) return { error: "Email ou mot de passe incorrect" };
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) return { error: "Email ou mot de passe incorrect" };
-  const cookieStore = await cookies();
-  cookieStore.set("userId", user.id, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  await setSessionCookie(user.id);
   return { success: true, user: { id: user.id, email: user.email, nom: user.nom, couleur: user.couleur } };
 }
 
 export async function deconnecter() {
-  const cookieStore = await cookies();
-  cookieStore.delete("userId");
+  await clearSessionCookie();
   return { success: true };
 }
 
 export async function getUtilisateur() {
-  const userId = await getUserId();
-  if (!userId) return null;
-  const user = await db.user.findUnique({ where: { id: userId } });
-  return user ? { id: user.id, email: user.email, nom: user.nom, couleur: user.couleur } : null;
+  return getSessionUser();
 }
 
 // ============== ARTICLES ==============

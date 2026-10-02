@@ -179,7 +179,7 @@ export default function ConfigurerBoutiquePage() {
   };
 
   const boutiqueUrl = boutique?.id
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/boutique/${boutique.id}`
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/boutique/${boutique.boutiqueSlug || boutique.id}`
     : '';
 
   const shareWhatsApp = () => {
@@ -494,7 +494,7 @@ export default function ConfigurerBoutiquePage() {
                 Partager WhatsApp
               </button>
               <Link
-                href={`/boutique/${boutique.id}`}
+                href={`/boutique/${boutique.boutiqueSlug || boutique.id}`}
                 target="_blank"
                 className="bg-blue-50 text-blue-700 border border-blue-200 rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-100 transition"
               >

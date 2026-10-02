@@ -14,8 +14,10 @@ export async function GET(
   try {
     const { vendeurId } = await params;
 
-    const user = await db.user.findUnique({
-      where: { id: vendeurId },
+    // S1 : la boutique est adressable par son slug lisible (partage WhatsApp)
+    // ou par son identifiant (compatibilité avec les anciens liens partagés).
+    const user = await db.user.findFirst({
+      where: { OR: [{ boutiqueSlug: vendeurId }, { id: vendeurId }] },
       select: {
         id: true,
         nom: true,
