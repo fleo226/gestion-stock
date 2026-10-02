@@ -93,18 +93,21 @@ export default function CaissePage() {
   const validerVente = async () => {
     setSending(true);
     try {
-      for (const item of panier) {
-        await fetch('/api/stock', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'sortie',
-            articleId: item.article.id,
-            quantite: item.quantite,
-            prixUnitaire: item.article.prixVente,
-            note: `Caisse ${modePaiement === 'mobile' ? 'Mobile Money' : 'Espèces'}${nomClient ? ` • ${nomClient}` : ''}`,
-          }),
-        });
+      // Audit B5 : une seule requête transactionnelle — soit TOUT le panier
+      // est enregistré, soit rien (plus de vente partielle silencieuse).
+      const res = await fetch('/api/caisse/vente', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: panier.map(p => ({ articleId: p.article.id, quantite: p.quantite, prixUnitaire: p.article.prixVente })),
+          modePaiement,
+          nomClient,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Erreur lors de la validation de la vente');
+        return;
       }
       setSent(true);
       setTimeout(() => {
