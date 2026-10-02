@@ -15,6 +15,7 @@ type Article = {
   quantite: number;
   unite: string;
   photoUrl: string | null;
+  actif?: boolean;
 };
 
 type PanierItem = {
@@ -52,7 +53,7 @@ export default function CaissePage() {
   }, [showRecap]);
 
   const filtered = articles.filter(a =>
-    a.quantite > 0 && (
+    a.quantite > 0 && a.actif !== false && (
       a.nom.toLowerCase().includes(recherche.toLowerCase()) ||
       a.couleur?.toLowerCase().includes(recherche.toLowerCase()) ||
       a.taille?.toLowerCase().includes(recherche.toLowerCase())
