@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Edit, Trash2, Plus, Minus, Package, DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp, Clock, X, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Plus, Minus, Package, DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp, Clock, X, Check, Loader2, Eye, EyeOff } from 'lucide-react';
 import AIAssistant from '@/components/AIAssistant';
 
 type Article = {
@@ -16,6 +16,7 @@ type Article = {
   quantite: number;
   unite: string;
   photoUrl: string | null;
+  actif: boolean;
   creeLe: string;
   entreeTotal: number;
   vendu: number;
@@ -110,6 +111,24 @@ export default function ArticleDetailPage() {
     } catch { alert('Erreur de connexion'); }
   };
 
+  // Audit B8 : bascule actif/inactif — un article inactif est masqué de la
+  // boutique en ligne et de la caisse, son historique est conservé.
+  const handleToggleActif = async () => {
+    if (!article) return;
+    const action = article.actif ? 'Désactiver' : 'Réactiver';
+    if (!confirm(`${action} cet article ?${article.actif ? ' Il sera masqué de votre boutique en ligne.' : ' Il réapparaîtra dans votre boutique.'}`)) return;
+    try {
+      const res = await fetch('/api/stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set-actif', articleId: id, actif: !article.actif })
+      });
+      const data = await res.json();
+      if (data.success) fetchArticle();
+      else alert(data.error || 'Erreur');
+    } catch { alert('Erreur de connexion'); }
+  };
+
   const formatPrice = (price: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(price);
   const formatDate = (date: string) => new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -144,6 +163,13 @@ export default function ArticleDetailPage() {
               <h1 className="text-lg font-semibold text-gray-900 truncate max-w-[200px]">{article.nom}</h1>
             </div>
             <div className="flex items-center space-x-1">
+              <button
+                onClick={handleToggleActif}
+                title={article.actif ? 'Désactiver (masquer de la boutique)' : 'Réactiver'}
+                className={`p-2.5 rounded-xl touch-manipulation ${article.actif ? 'text-gray-500 hover:text-orange-600 hover:bg-orange-50 active:bg-orange-100' : 'text-orange-600 hover:bg-orange-50 active:bg-orange-100'}`}
+              >
+                {article.actif ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+              </button>
               <Link href={`/article/${id}/modifier`} className="p-2.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl active:bg-blue-100 touch-manipulation">
                 <Edit className="h-5 w-5" />
               </Link>
