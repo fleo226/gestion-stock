@@ -47,7 +47,10 @@ export async function GET(
 
     const articles = await db.article.findMany({
       where: {
-        userId: vendeurId,
+        // Régression slug (S1) corrigée : l'identifiant propriétaire est
+        // l'id réel de l'utilisateur trouvé, jamais le paramètre d'URL
+        // (qui peut être un slug).
+        userId: user.id,
         quantite: { gt: 0 },
         actif: true,
       },

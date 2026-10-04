@@ -169,8 +169,11 @@ export async function POST(request: NextRequest) {
       quantite,
     }));
 
-    // Vérifier que le vendeur existe
-    const vendeur = await db.user.findUnique({ where: { id: vendeurId } });
+    // Vérifier que le vendeur existe — le paramètre peut être un slug
+    // de boutique (S1) ou l'identifiant réel (compat anciens liens).
+    const vendeur = await db.user.findFirst({
+      where: { OR: [{ boutiqueSlug: vendeurId }, { id: vendeurId }] },
+    });
     if (!vendeur) {
       return NextResponse.json({ error: 'Vendeur introuvable' }, { status: 404 });
     }
@@ -184,7 +187,7 @@ export async function POST(request: NextRequest) {
       if (!article) {
         return NextResponse.json({ error: `Article introuvable` }, { status: 404 });
       }
-      if (article.userId !== vendeurId) {
+      if (article.userId !== vendeur.id) {
         return NextResponse.json({ error: 'Article non autorisé' }, { status: 403 });
       }
       if (article.quantite < item.quantite) {
@@ -210,7 +213,7 @@ export async function POST(request: NextRequest) {
       const commande = await getDbDirect().$transaction(async (tx) => {
         const created = await tx.commande.create({
           data: {
-            vendeurId,
+            vendeurId: vendeur.id,
             clientNom: clientNom.trim(),
             clientTelephone: clientTel?.trim() || null,
             clientAdresse: clientAdresse?.trim() || null,
