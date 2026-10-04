@@ -10,9 +10,19 @@ export async function GET(
   try {
     const { vendeurId, commandeId } = await params;
 
+    // S1 : le paramètre peut être un slug de boutique ou l'identifiant réel
+    const vendeurUser = await db.user.findFirst({
+      where: { OR: [{ boutiqueSlug: vendeurId }, { id: vendeurId }] },
+      select: { id: true },
+    });
+
+    if (!vendeurUser) {
+      return NextResponse.json({ error: 'Vendeur introuvable' }, { status: 404 });
+    }
+
     // Récupère la commande avec ses lignes
     const commande = await db.commande.findFirst({
-      where: { id: commandeId, vendeurId },
+      where: { id: commandeId, vendeurId: vendeurUser.id },
       include: {
         lignes: {
           include: {
@@ -28,7 +38,7 @@ export async function GET(
 
     // Récupère la config Orange Money du vendeur
     const vendeur = await db.user.findUnique({
-      where: { id: vendeurId },
+      where: { id: vendeurUser.id },
       select: {
         boutiqueNom: true,
         boutiqueWhatsApp: true,
