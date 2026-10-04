@@ -15,6 +15,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#2563eb",
+  colorScheme: "only light",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +23,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
+        {/* Interdit au navigateur d'assombrir artificiellement les pages
+            claires quand le système est en thème sombre (retour de test) */}
+        <meta name="color-scheme" content="only light" />
         <meta name="theme-color" content="#2563eb" />
       </head>
       <body className={`${inter.className} min-h-screen bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300`}>

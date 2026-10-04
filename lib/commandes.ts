@@ -13,8 +13,11 @@ export const DELAI_EXPIRATION_MS = 2 * 60 * 60 * 1000; // 2 heures
 type Tx = Prisma.TransactionClient;
 
 // Restitue le stock de chaque ligne : incrément atomique + mouvement
-// ENTREE tracé (prix de revient actuel de l'article).
+// ENTREE tracé (prix de revient actuel de l'article). Les mouvements
+// SORTIE de la commande annulée sont supprimés : sinon le CA et le
+// bénéfice compteraient des ventes qui n'ont jamais eu lieu.
 async function restaurerStockCommande(tx: Tx, commandeId: string, motif: string): Promise<void> {
+  const reference = `Commande ${commandeId.slice(0, 8).toUpperCase()} :`;
   const lignes = await tx.commandeLigne.findMany({
     where: { commandeId },
     select: { articleId: true, quantite: true },
@@ -37,6 +40,15 @@ async function restaurerStockCommande(tx: Tx, commandeId: string, motif: string)
         note: motif,
       },
     });
+    if (reference) {
+      await tx.mouvement.deleteMany({
+        where: {
+          articleId: ligne.articleId,
+          type: 'SORTIE',
+          note: { contains: reference },
+        },
+      });
+    }
   }
 }
 

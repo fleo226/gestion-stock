@@ -43,6 +43,9 @@
 html {
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
+  /* L'app est conçue en thème clair : interdire le mode sombre forcé
+     du navigateur (sinon la page d'accueil passe sur fond sombre). */
+  color-scheme: only light;
 }
 
 body {
